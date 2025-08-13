@@ -54,10 +54,25 @@ def tutocontext(request):
         .order_by("-updated_at")
         .distinct()
     )
-    for tuto in tuto_list:
-        tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
-        if created:
-            tp.set_all_pageprogress()
+    # if request.user.is_anonymous:
+    #     request.session["progress"] = {
+    #         t.id: {
+    #             p.id: {
+    #                 q.id: {r.id: 0 for r in q.get_all_propositions}
+    #                 for q in p.get_all_questions
+    #             }
+    #             for p in t.get_all_pages
+    #         }
+    #         for t in tuto_list
+    #     }
+
+    # else:
+    #     for tuto in tuto_list:
+    #         tp, created = TutoProgress.objects.get_or_create(
+    #             user=request.user, tuto=tuto
+    #         )
+    #         if created:
+    #             tp.set_all_pageprogress()
 
     context.update(
         {
@@ -73,6 +88,14 @@ def tutocontext(request):
     )
 
     if request.user.is_authenticated:
+
+        for tuto in tuto_list:
+            tp, created = TutoProgress.objects.get_or_create(
+                user=request.user, tuto=tuto
+            )
+            if created:
+                tp.set_all_pageprogress()
+
         context.update(
             {
                 "tp_list": request.user.tutoprogress.filter(
@@ -80,8 +103,21 @@ def tutocontext(request):
                 ).order_by("-tuto__updated_at")
             }
         )
-    else:
-        context.update({"tp_list": []})
+    elif request.user.is_anonymous:
+
+        request.session["progress"] = {
+            t.id: {
+                p.id: {
+                    q.id: {r.id: 0 for r in q.get_all_propositions}
+                    for q in p.get_all_questions
+                }
+                for p in t.get_all_pages
+            }
+            for t in tuto_list
+        }
+        context.update(
+            {"tp_list": [{"tuto": tuto, "next_page": 1} for tuto in tuto_list]}
+        )
 
     return context
 
@@ -211,9 +247,15 @@ def read_tuto(request, tuto_slug, page):
     # ou :  2- son auteur fait la requête
     # ou :  3- un gestionnaire fait la requête
 
-    if (
-        tuto
-        in Tutorial.objects.filter(
+    if request.user.is_anonymous:
+        tuto_authorized_list = Tutorial.objects.filter(
+            Q(published=True) & Q(restriction=None)
+        )
+    elif request.user.is_gestionnaire:
+        tuto_authorized_list = Tutorial.objects.all()
+
+    elif request.user.is_authenticated:
+        tuto_authorized_list = Tutorial.objects.filter(
             (
                 Q(published=True)
                 & (
@@ -223,18 +265,40 @@ def read_tuto(request, tuto_slug, page):
             )
             | (Q(author=request.user))
         )
-    ) or (request.user.is_gestionnaire):
+
+    # if (
+    #     tuto
+    #     in Tutorial.objects.filter(
+    #         (
+    #             Q(published=True)
+    #             & (
+    #                 # Q(restriction__in=request.user.restriction.all())
+    #                 Q(restriction__in=request.session["restriction"])
+    #                 | Q(restriction=None)
+    #             )
+    #         )
+    #         | (Q(author=request.user))
+    #     )
+    # ) or (request.user.is_gestionnaire):
+
+    if tuto in tuto_authorized_list:
         current_page = get_object_or_404(Page, tuto=tuto, page_number=page_number)
     else:
         raise Http404
 
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
-    tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
-    if created:
-        tp.set_all_pageprogress()
-    current_pageprogress = PageProgress.objects.get(
-        user=request.user, page=current_page
-    )
+    if request.user.is_authenticated:
+        tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
+        if created:
+            tp.set_all_pageprogress()
+        current_pageprogress = PageProgress.objects.get(
+            user=request.user, page=current_page
+        )
+    elif request.user.is_anonymous:
+        tp = {"tuto": tuto, "next_page": 1}
+        current_pageprogress = request.session["progress"][f"{tuto.id}"][
+            f"{current_page.id}"
+        ]
 
     if request.method == "POST":
         if current_page.get_all_questions:
@@ -260,29 +324,36 @@ def read_tuto(request, tuto_slug, page):
             current_pageprogress.finished ^= True
             current_pageprogress.save()
 
-    PageProgress.set_all_propositionprogress(
-        current_pageprogress, clear="redo" in request.POST.keys()
-    )
-
     context = tutocontext(request)
-    if tuto in request.user.tutorial.all():
-        context.update(
-            {
-                "utilisateur": "auteur",
-                "titre_page": "Vous êtes " + tuto.get_tuto_status,
-            }
+    if request.user.is_authenticated:
+        PageProgress.set_all_propositionprogress(
+            current_pageprogress, clear="redo" in request.POST.keys()
         )
-    elif is_gestionnaire(request.user):
+
+        if tuto in request.user.tutorial.all():
+            context.update(
+                {
+                    "utilisateur": "auteur",
+                    "titre_page": "Vous êtes " + tuto.get_tuto_status,
+                }
+            )
+        elif is_gestionnaire(request.user):
+            context.update(
+                {
+                    "utilisateur": "gestionnaire",
+                    "titre_page": "<nom de l'auteur>" + " est " + tuto.get_tuto_status,
+                }
+            )
+        else:
+            context.update(
+                {
+                    "utilisateur": "adhérent",
+                }
+            )
+    elif request.user.is_anonymous:
         context.update(
             {
-                "utilisateur": "gestionnaire",
-                "titre_page": "<nom de l'auteur>" + " est " + tuto.get_tuto_status,
-            }
-        )
-    else:
-        context.update(
-            {
-                "utilisateur": "adhérent",
+                "utilisateur": "invité",
             }
         )
 

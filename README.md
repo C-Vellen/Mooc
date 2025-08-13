@@ -16,7 +16,7 @@
     {
         owner : moocadmin,
         password :    0000,
-        database : moocdb,
+        database : moocDB,
         port: 5434,
     }
 ```
