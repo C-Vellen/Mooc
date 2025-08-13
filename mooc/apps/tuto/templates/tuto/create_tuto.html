@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block header %}
+<script src="{% static 'dist/set_form.js' %}" defer></script> 
+{% endblock %}
+
+{% block content %}
+
+<div class="w-full my-10">
+    
+    <form method="post" enctype="multipart/form-data" action="{% url 'tuto:create_tuto' %}" >
+        {% csrf_token %}
+
+        {% include 'tuto/vignette_tuto.html' with categories=categories %}
+    
+        <div class="mt-12 flex justify-center items-center flex-col gap-4 lg:flex-row">    
+            <button class="action-button2 w-full" name="next" value="create" >{{create}}</button>
+            <button class="action-button2 w-full" name="next" value="createback" >{{createback}}</button>
+            <a      class="action-button2 w-full" href="{% url 'progress:auteur' %}">{{createcanc}}</a>
+        </div> 
+    </form>
+
+</div>
+{% endblock %}
+
+
+

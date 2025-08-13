@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block header %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<div class="reachable w-full ">
+    {% include 'tuto/nav_tuto.html' %}
+    {% include 'tuto/list.html' %}
+</div>
+{% endblock %}
+

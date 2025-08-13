@@ -1,0 +1,17 @@
+
+
+<div class="w-full flex justify-center items-center flex-col gap-4 lg:w-auto lg:flex-row lg:gap-8">    
+
+    {% if tuto_header == "admin" %}
+        <a class="action-button2 min-w-52" href="{% url 'progress:compte' %}">Retour au compte</a>  
+    {% endif %}
+    
+    {% if author_link %}
+    <a class="action-button2 min-w-52" href="{% url 'progress:auteur' %}">Espace Auteur</a>
+    {% endif %}
+
+    {% if gestionnaire_link %}
+    <a class="action-button2 min-w-52" href="{% url 'progress:gestionnaire' %}">Espace Gestionnaire</a>
+    {% endif %}
+
+</div> 

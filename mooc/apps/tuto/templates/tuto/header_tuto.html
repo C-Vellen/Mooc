@@ -1,0 +1,102 @@
+{% load static tutos_extras %}
+
+
+    <div class="fixed top-16 right-0  flex flex-col items-end bg-white sm:top-20">
+        <div id="sommaire_box" class="w-40 mr-10 flex flex-row justify-end items-center text-header text-sm hover:font-bold hover:cursor-pointer">
+            <p>SOMMAIRE</p>
+            <div id="caret" class="unfold-caret"></div>
+        </div>
+
+        <div id="sommaire_menu_deroulant" class="hidden overflow-y-hidden w-full z-10 flex flex-col bg-slate-100 transition-all duration-500">
+            <ul class="px-4 py-2 text-xs sm:text-sm ">
+                {% for page in tuto.get_all_pages %}
+                    {% if page.page_number <= tp.next_page or tp.is_finished %}
+                        {% if page == current_page %}
+                            <li class="font-bold text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#tete_de_page">{{page.page_number}}- {{page.page_title}}</a></li>
+                        {% else %}
+                        <li class="text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#tete_de_page">{{page.page_number}}- {{page.page_title}}</a></li>
+                        {% endif %}
+                        {% for content in page.get_all_contents %}
+                            {%  if content.contenttype == 'TI' %}
+                            <li class="ml-6 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}{{ content.ancre }}" >{{content.texte}}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if page.get_all_questions %}
+                            <li class="ml-6 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#quiz" >QUIZ</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="text-slate-500"><span>{{page.page_number}}- {{page.page_title}}</san></li>
+                        {% for content in page.get_all_contents %}
+                            {%  if content.contenttype == 'TI' %}
+                            <li class="ml-6 text-slate-500"><span href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}{{ content.ancre }}" >{{content.texte}}</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if page.get_all_questions %}
+                            <li class="ml-6 text-slate-500"><span href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#quiz" >QUIZ</span></li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+            </ul>
+        </div>
+        
+    </div>
+
+    <div id="tete_de_page" class="reachable w-full mt-4 px-6 py-0 gap-1 flex justify-start items-start flex-col border-b-2 text-slate-700">
+            <p id="nav_tuto" class="text-xs sm:text-sm">
+                <a class="font-bold hover:underline" href="{% url 'home:index' %}">Accueil</a>
+                <span>></span>
+                <a class="hover:underline" href="{% url 'tuto:listing' %}">Tutoriels</a>
+                <span>></span>
+                <a class="action-button" href="{% url 'tuto:listing_cat' tuto.category.slug %}">{{ tuto.category.name }}</a>
+            </p>    
+            <p class="text-xs sm:text-sm">
+                <em>{{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
+                {% if utilisateur == "auteur" %}
+                    {% if tuto.in_progress or tuto.rejected %}
+                    <a class="ms-4 bg-orange-400 rounded px-1 py-0" href="{% url 'tuto:update_tuto' tuto.slug %}">Modifier</a>
+                    {% endif %}
+                    <a class="ms-4 bg-slate-400 rounded px-1 py-0" href="{% url 'progress:auteur' %}">Retour</a>
+                {% elif utilisateur == "gestionnaire" %}
+                    <em> - {{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
+                    <a class="ms-4 bg-slate-400 rounded px-1 py-0" href="{% url 'progress:gestionnaire' %}">Retour</a>
+                {% endif %}
+            </p>
+
+            <p class="min-w-40 leading-8 mt-1 mb-2 text-xs sm:text-sm"> 
+                <span class="mr-2 italic text-sm">Accès : </span>
+                {% if tuto.get_restrictions %}
+                    {% for res in tuto.get_restrictions %}
+                    <span class="restriction-choice access-button">{{res.name}}</span> 
+                    {% endfor %}
+                {% else %}
+                    <span class="access-button">Tout public</span> 
+                {% endif %}
+            </p>
+    
+            <h1 class="text-lg sm:text-2xl font-bold ">
+                <span>{{tuto.title}}</span>
+                {% if tuto.archived %}
+                <span class= "mx-2 px-2 bg-slate-800 text-slate-200" >ARCHIV&#201;</span>
+                {% endif %}
+                {% if not tuto.published %}
+                <span class= "mx-2 px-2 bg-slate-800 text-slate-200" >NON PUBLI&#201;</span>
+                {% endif %}
+            </h1>
+
+            <div class= "flex justify-start items-center flex-row gap-4 text-sm sm:text-base ">
+                {% if current_page.page_number > 1 %}
+                    <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:-1 %}" class="left-arrow"></a>
+                {% endif %}
+                <p class="">Page: {{current_page.page_number}}</p>
+                {% if current_page.page_number < tuto.get_pages_total_number  %}
+                    {% if  current_pageprogress.finished %}
+                        <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:1 %}" class="right-arrow"></a>
+                    {% elif current_page.page_number < tuto.get_pages_total_number%}
+                        <span class="right-arrow-inactive"></span>
+                    {% endif %}
+                {% endif %}
+            </div>
+    </div>
+
+

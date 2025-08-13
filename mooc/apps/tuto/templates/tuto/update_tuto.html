@@ -1,0 +1,457 @@
+{% extends 'base.html' %}
+
+{% load static tutos_extras %}
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'dist/drag.css' %}" />
+<script src="{% static 'dist/set_form.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="w-full my-10">
+    
+    <form class="" method="post" enctype="multipart/form-data" action="{% url 'tuto:update_tuto' tuto.slug %}" >
+    {% csrf_token %}
+        
+        {% include 'tuto/vignette_tuto.html' with categories=categories %}
+
+        <div class="mx-8 mb-8 max-w-lg md:max-w-2xl md:mx-auto">
+        {# FORMULAIRES PAGES+CONTENTS+QUESTIONS DU TUTORIEL #}
+            <div id="{{tuto.id}}" class="add-page flex justify-start items-center flex-col gap-2 ">
+                
+                {% for page in tuto.get_all_pages %}
+
+                    {# FORMULAIRE PAGE (bloc déplaçable)#}
+                    <div data-elm-add="page" class="w-full"> 
+                            
+                        <input class="fk hidden" name="update-page-{{page.id}}-tuto" value="{{tuto.id}}"/>                                     
+                        <div class="mt-12 mb-4 font-bold text-sm w-full p-1 flex justify-start items-center gap-1 rounded-md bg-slate-700 ">                                              
+                            <div class="flex justify-start items-start flex-col md:flex-row md:items-center">
+                                <label class="w-12 text-slate-100" for="update-page-{{page.id}}-page_number">Page : </label>
+                                <input class="position" id="update-page-{{page.id}}-page_number" type="number" name="update-page-{{page.id}}-page_number" value="{{page.page_number}}" readonly>
+                            </div> 
+                            <div class="flex justify-start items-start flex-col md:flex-row  md:items-center">
+                                <label class="w-12 text-slate-100" for="update-page-{{page.id}}-page_title">Titre : </label>
+                                <textarea class="w-full rounded" id="update-page-{{page.id}}-page_title" maxlength="200" name="update-page-{{page.id}}-page_title" cols="45" rows="1" >{{page.page_title}}</textarea>
+                            </div>
+                            
+                            <div class="widget-page">
+                                {% include 'tuto/widget.html' with delete_name="page" delete_id=page.id %}
+                            </div>
+                        </div>
+
+                        {# Table des Contents de la page #}
+ 
+                            <div class="add-content-{{page.id}} w-full flex flex-col gap-4 text-xs" id="{{page.id}}">
+                                {% for content in page.get_all_contents %}
+                                {# Formulaire content (bloc déplaçable)#}                          
+                                <div data-elm-add="content" class="w-full">
+                                    <input class="fk hidden" name="update-content-{{content.id}}-page" value="{{page.id}}"/>
+                                    <div class="mb-1 w-full flex justify-start gap-1">
+                                        <input class="position bg-slate-300" type="number" name="update-content-{{content.id}}-position" value="{{content.position}}" required="" readonly>
+             
+                                        <select class="headline bg-slate-300" name="update-content-{{content.id}}-contenttype" required="" >
+                                                <option value="" disabled selected>sélectionner le type de contenu</option>
+                                            {% for t in CONTENTTYPES %}  
+                                                {% if t.0 == content.contenttype %}                      
+                                                <option value="{{t.0}}" selected>{{t.1}}</option>
+                                                {% else %}
+                                                <option value="{{t.0}}">{{t.1}}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+
+                                        <p class="headline {{ content.contenttype }} bg-slate-300" style="display:none">
+                                                <em class="italic"></em> : <span class=""></span>
+                                        </p>
+
+                                                                               
+                                        <div class="widget-content bg-slate-300">
+                                            {% include 'tuto/widget.html' with delete_name="content" delete_id=content.id %}
+                                        </div>
+
+                                    </div>
+                                    {# ligne content #}
+                                    <div class="w-full">
+                                        <div class="load-image flex flex-col justify-center items-center" style="display:none;">
+                                            <div class="relative" style="width:{{ content.percent_scale }}%;"">
+                                                <img class="img-preview w-full mb-2" src="{{content|find_img}}" alt="">
+                                                <label for="update-content-{{content.id}}-image" class="absolute w-12 top-2 right-2">
+                                                    <img class="w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                                                </label>
+                                                <input id="update-content-{{content.id}}-image" class="hidden" type="file" name="update-content-{{content.id}}-image" accept="image/*" >
+                                            </div>
+                                            <div class="scale mb-2 w-full flex justify-start items-center gap-6 text-sm">
+                                                <span class="italic ">Echelle : </span>
+                                                <input id="update-content-{{content.id}}-percent_scale" type="range" name="update-content-{{content.id}}-percent_scale" min="10" max="100" value="{{content.percent_scale}}">
+                                                <span class="scale-display">{{ content.percent_scale }}%</span>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="relative load-video" style="display:none;">
+                                            <video class="w-full" controls>
+                                                <source src="{{content|find_video}}"/>
+                                                <p>Votre navigateur ne prend pas en charge cette video. <a href="{{content|find_video}}">Télécharger la video.</a></p>
+                                            </video>
+                                            <label for="update-content-{{content.id}}-video" class="absolute w-12 top-2 right-2">
+                                                <img class="w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                                            </label>
+                                            <input id="update-content-{{content.id}}-video" class="hidden" type="file" name="update-content-{{content.id}}-video" accept="video/*" >
+                                        </div>
+
+
+                                        <textarea class="w-full" name="update-content-{{content.id}}-texte" style="display:none;">{{ content.texte }}</textarea>
+                                        
+                                        <div class="list" style="display:none">
+                                        {# table des listitems du content#}
+                                        <div class="ps-11 w-full text-xs">   
+                                        
+                                            <div class="add-listitem-{{content.id}} flex flex-col gap-1" id="{{content.id}}">
+                                            {% for listitem in content.get_all_listitems %}
+                                                {#  formulaire d'un item (bloc déplaçable)#}
+                                                <div data-elm-add="listitem">
+                                                    <input class="fk hidden" name="update-listitem-{{listitem.id}}-content" value="{{content.id}}"/>
+                                                    <div class="mb-1 flex w-full gap-1">
+                                                        <input class="position bg-slate-200" type="number" name="update-listitem-{{listitem.id}}-position" value="{{listitem.position}}" required="" readonly>
+                                                        
+                                                        <textarea class="w-full" cols="" rows="1" name="update-listitem-{{listitem.id}}-texte">{{listitem.texte}}</textarea>
+                                                        
+                                                        <div class="widget-list bg-slate-200">
+                                                            {% include 'tuto/widget.html' with delete_name="listitem" delete_id=listitem.id %}
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                            </div>
+                                            <textarea class="hidden" name=""></textarea>
+
+
+                                        </div>
+                                        {# bouton pour ajouter un nouvel item (ajout à l'élément class="add-proposition-{{question.id}} le formulaire data-elm-add="proposition" ) #}
+                                            <div class="ps-11">
+                                                <button class="add-elms mt-2 w-full rounded bg-slate-200 text-start font-bold p-2 " data-elm="listitem" data-ou=".add-listitem-{{content.id}}">+ Ajouter un nouvel item</button>
+                                            </div>
+                                        {# fin table list items #}
+                                        </div>
+                                        
+
+
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                                           
+                        {# bouton pour ajouter un nouveau contenu #}
+                        <button class="add-elms mt-4 w-full rounded bg-slate-300 text-start font-bold p-2" data-elm="content" data-ou=".add-content-{{page.id}}">+ Ajouter un nouveau contenu</button>
+
+                        {# table des questions #}
+                        <p class="w-full my-4 font-bold text-center text-lg">Quiz</p>
+                        <div class="add-question-{{page.id}} w-full" id="{{page.id}}">
+                            {% for question in page.get_all_questions %}  
+                                {#  formulaire d'une question (bloc déplaçable)#}                        
+                                <div data-elm-add="question" class="w-full mb-4 text-xs">
+                                    <input class="fk hidden" name="update-question-{{question.id}}-page" value="{{page.id}}"/>
+                                    <div class="mb-1 flex w-full gap-1">
+                                        <input class="position bg-teal-200" type="number" name="update-question-{{question.id}}-position" value="{{question.position}}" required="" >
+                                        <select class="headline bg-teal-200" required disabled >
+                                            <option>Question</option>
+                                        </select>
+
+                                        <p class="headline bg-teal-200" style="display:none">
+                                            <em class="italic"></em> : <span></span>
+                                        </p>
+                        
+                                        <div class="widget-content bg-teal-200">
+                                            {% include 'tuto/widget.html' with delete_name="question" delete_id=question.id %}
+                                        </div>
+            
+                                    </div>
+                    
+                                    <textarea class="w-full" rows="2" name="update-question-{{question.id}}-question" >{{question.question}}</textarea>
+                                    <div><p class="w-full text-start">Explication de la réponse pour la correction : </p></div>
+                                    <textarea class="w-full" rows="2" name="update-question-{{question.id}}-explication" >{{question.explication}}</textarea>
+                                                                       
+                                    <div class="w-full flex py-1 text-center ">
+                                        <span>Plusieurs réponses possibles : </span>
+                                        <input class="mx-6" type="checkbox" name="update-question-{{question.id}}-multiresponse" {{ question.multiresponse |yesno:"checked,"  }}>
+                                    </div>
+
+
+                                    {# table des propositions #}
+                                    <div class="ps-11 w-full text-xs">   
+                                      
+                                        <div class="add-proposition-{{question.id}} flex flex-col" id="{{question.id}}">
+                                        {% for proposition in question.get_all_propositions %}
+                                            {#  formulaire d'une proposition (bloc déplaçable)#}
+                                            <div data-elm-add="proposition">
+                                                <input class="fk hidden" name="update-proposition-{{proposition.id}}-question" value="{{question.id}}"/>                                     
+                                                <div class="mb-1 flex w-full gap-1">
+                                                    <input class="position bg-teal-200" type="number" name="update-proposition-{{proposition.id}}-position" value="{{proposition.position}}" required="" readonly>
+           
+                                                    <select class="headline bg-teal-200" name="" required disabled  >
+                                                        <option value="">Réponse</option>
+                                                    </select>
+                                                    
+                                                    <p class="headline bg-teal-200" style="display:none">
+                                                        <em class="italic"></em> : <span></span>
+                                                    </p>
+            
+                                                    <div class="widget-content bg-teal-200">
+                                                        {% include 'tuto/widget.html' with delete_name="proposition" delete_id=proposition.id %}
+                                                    </div>
+                                                </div>
+
+                                                <textarea class="w-full" cols="29" rows="2" name="update-proposition-{{proposition.id}}-proposition">{{proposition.proposition}}</textarea>
+                                                <div class="w-full flex py-1 text-center ">
+                                                    <span>Est-ce la bonne réponse ? </span>
+                                                    <input class="mx-6" type="checkbox" name="update-proposition-{{proposition.id}}-good_answer" {{ proposition.good_answer |yesno:"checked,"  }}>
+                                                </div>
+            
+
+                                            </div>
+                                        {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    {# bouton pour ajouter une nouvelle proposition (ajout à l'élément class="add-proposition-{{question.id}} le formulaire data-elm-add="proposition" ) #}
+                                    <div class="ps-11">
+                                        <button class="add-elms mt-2 w-full rounded bg-teal-100 text-start font-bold p-2 " data-elm="proposition" data-ou=".add-proposition-{{question.id}}">+ Ajouter une nouvelle proposition</button>
+                                    </div>
+                                </div>
+                            {% endfor %}                                                        
+                        </div>
+                        {# bouton pour ajouter une nouvelle question (ajout à l'élément class="add-question-{{page.id}} le formulaire data-elm-add="question" ) #}
+                        <button class="add-elms w-full rounded bg-teal-100 text-start font-bold p-2 " data-elm="question" data-ou=".add-question-{{page.id}}">+ Ajouter une nouvelle question</button>
+                    </div>                                                                  
+
+                {% endfor %}                                                                
+        
+            </div>
+            {# bouton pour ajouter une nouvelle page #}
+            <button class="add-elms my-12 w-full rounded bg-slate-700 text-slate-100 text-start font-bold p-2" data-elm="page" data-ou=".add-page">+ Ajouter une nouvelle page</button>
+
+            {# boutons d'action en bas de page #}
+            <div class="mt-12 flex justify-start items-center flex-col gap-4">
+                <button type="submit" class="action-button2 w-full" name="next" value="cont">{{cont}}</button>
+                <button class="action-button2 w-full" name="next" value="visu" >{{visu}}</button>
+                <button class="action-button2 w-full" name="next" value="back">{{back}}</button>
+                <!-- <a class="action-button2 w-full" href="{% url 'tuto:update_tuto' tuto.slug %}">{{canc}}</a> -->
+                <a class="leave-button action-button2 w-full" data-message="Attention vous allez effacer toutes les modifications non sauvegardées." data-link="{% url 'tuto:update_tuto' tuto.slug %}">{{canc}}</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# ************************************************************************************************* #}
+
+{# formulaires vierges pour ajouter des nouveaux éléments #}
+<div id="elms" style="display: none;">
+    
+    {#  formulaire de toute une page (bloc déplaçable)#}
+    <div data-elm-add="page">
+        {# Formulaire de la nouvelle page #}
+        <input class="fk hidden" name="create-page-xx-tuto" value=""/>
+
+
+        <div class="mt-12 mb-4 font-bold text-sm w-full p-1 flex justify-start items-center gap-1 rounded-md bg-slate-700 ">   
+            <div class="flex justify-start items-start flex-col md:flex-row md:items-center">
+                <label class="w-12 text-slate-100" for="create-page-xx-page_number">Page : </label>
+                <input class="position" id="create-page-xx-page_number" type="number" name="create-page-xx-page_number" value="">
+            </div>
+            <div class="flex justify-start items-start flex-col md:flex-row md:items-center">
+                <label class="w-12 text-slate-100" for="create-page-xx-page_title">Titre : </label>
+                <textarea class="w-full rounded-md" id="create-page-xx-page_title" maxlength="200" name="create-page-xx-page_title" cols="45" rows="1"></textarea>
+            </div>
+            <div class="widget-page text-slate-100">
+                {% include 'tuto/widget.html' with delete_name="page" delete_id="xx" %}
+            </div>
+        </div>       
+        
+        
+        {# table des contenus #}
+        <div class="w-full text-xs">
+            <div class="add-content flex flex-col gap-2" id="new-xx"></div>
+        </div>
+
+        {# bouton pour ajouter un nouveau contenu #}
+        <button class="add-elms mt-6 w-full rounded bg-slate-300 text-start font-bold p-2 " data-elm="content" data-ou=".add-content">+ Ajouter un nouveau contenu</button>
+
+        {# table des questions #}
+        <p class="w-full my-4 font-bold text-center text-lg">Quiz</p>
+        <div class="add-question" id="new-xx"></div>
+        
+        {# bouton pour ajouter une nouvelle question #}
+        <button class="add-elms w-full rounded bg-teal-100 text-start font-bold p-2 " data-elm="question" data-ou=".add-question">+ Ajouter une nouvelle question</button>
+    </div>
+
+
+    {# Ajout d'un contenu : formulaire du nouveau contenu #}
+    <div data-elm-add="content">           
+        <input class="fk hidden" name="create-content-xx-page" value=""/>
+        {# ligne position / type / boutons de repliage/suppression/déplacement#}
+        <div class="mb-1 flex w-full gap-1">
+            <input class="position bg-slate-300" type="number" name="create-content-xx-position" value="" required="" >
+
+            <select class="headline bg-slate-300" name="create-content-xx-contenttype" required="" >
+                <option value="" disabled selected>sélectionner le type de contenu</option>
+                {% for t in CONTENTTYPES %}  
+                    <option value="{{t.0}}">{{t.1}}</option>
+                {% endfor %}
+            </select>
+
+            <p class="headline bg-slate-300" style="display:none">
+                <em class="italic"></em> : <span></span>
+            </p>
+
+            <div class="widget-content bg-slate-300">
+                {% include 'tuto/widget.html' with delete_name="content" delete_id=xx %}
+            </div>
+        </div>
+
+        {# ligne contenu #}
+        <div class="w-full">
+
+            <div class="load-image flex flex-col justify-center items-center" style="display:none;">
+                <div class="img relative" style="width:100%;"">
+                    <img class="img-preview w-full mb-2" src="{{content|find_img}}" alt="">
+                    <label for="create-content-xx-image" class="absolute w-12 top-2 right-2">
+                        <img class="crayon w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                    </label>
+                    <input id="create-content-xx-image" class="hidden" type="file" name="create-content-xx-image" accept="image/*" > 
+                </div>
+                <div class="scale mb-2 w-full flex justify-start items-center gap-6 text-sm">
+                    <span class="italic ">Echelle : </span>
+                    <input class="" id="create-content-xx-percent_scale" type="range" name="create-content-xx-percent_scale" min="10" max="100" value="100">
+                    <span class="scale-display">100%</span>
+                </div>
+            </div>
+
+            <div class="relative load-video" style="display:none;">
+                <video class="w-full" controls>
+                    <source src="{{content|find_video}}"/>
+                    <p>Votre navigateur ne prend pas en charge cette video. <a href="{{content|find_video}}">Télécharger la video.</a></p>
+                </video>
+
+                <label for="create-content-xx-video" class="absolute w-12 top-2 right-2">
+                    <img class="crayon w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                </label>
+                <input id="create-content-xx-video" class="hidden" type="file" name="create-content-xx-video" accept="video/*" >
+            </div>
+
+
+            <textarea class="w-full" name="create-content-xx-texte" style="display:none;" ></textarea>
+            <div class="list" style="display:none;">
+                {# Ajout d'un item : formulaire du nouvel item #}
+                <div class="ps-11 w-full text-xs">   
+                    <div class="add-listitem flex flex-col gap-1" id="new-xx"></div>
+                </div>
+                <textarea class="hidden" name=""></textarea>
+
+                {# Bouton ajouter listitem #}
+                <div class="ps-11">
+                    <button class="add-elms mt-1 w-full rounded bg-slate-200 text-start font-bold p-2 " data-elm="listitem" data-ou=".add-listitem">+ Ajouter un nouvel item</button>
+                </div>    
+            </div>
+
+        </div>
+
+          
+
+    </div>
+
+    {# Ajout d'un listitem : formulaire du nouveau listitem #}
+    <div data-elm-add="listitem"> 
+        <input class="fk hidden" name="create-listitem-xx-content" value=""/>
+        <div class="mb-1 flex w-full gap-1">
+            <input class="position bg-slate-200" type="number" name="create-listitem-xx-position" value="" required readonly>
+            <textarea class="w-full" cols="29" rows="1" name="create-listitem-xx-texte" ></textarea>      
+            <div class="widget-list bg-slate-200">
+                {% include 'tuto/widget.html' with delete_name="listitem" delete_id=xx %}
+            </div>
+        </div>
+    </div>
+
+
+  
+    {# Ajout d'une question : formulaire de la nouvelle question#}
+    <div data-elm-add="question" class="w-full mb-4 text-xs"> 
+        <input class="fk hidden" name="create-question-xx-page" value=""/>
+        {# ligne position / multiréponse /suppr #}
+        <div class="mb-1 flex w-full gap-1">
+            <input class="position bg-teal-200" type="number" name="create-question-xx-position" value="" required=""  >
+            
+            <select class="headline bg-teal-200" required disabled >
+                <option>Question</option>
+            </select>
+            <p class="headline bg-teal-200" style="display:none">
+                <em class="italic"></em> : <span></span>
+            </p>
+        
+            <div class="widget-content bg-teal-200">
+                {% include 'tuto/widget.html' with delete_name="question" delete_id=xx %}
+            </div>
+
+        </div>
+
+        <textarea class="w-full" rows="2" name="create-question-xx-question" ></textarea>
+        <div><p class="w-full text-start">Explication de la réponse pour la correction : </p></div>
+        <textarea class="w-full" rows="2" name="create-question-xx-explication" value=""></textarea>
+                                            
+        <div class="w-full flex py-1 text-center ">
+            <span>Plusieurs réponses possibles : </span>
+            <input class="mx-6" type="checkbox" name="create-question-xx-multiresponse">
+        </div>
+  
+
+        {# Ajout d'une proposition : formulaire de la nouvelle proposition #}
+        <div class="ps-16 w-full text-xs">   
+            <div class="add-proposition flex flex-col" id="new-xx"></div>
+        </div>
+
+        {# Bouton ajouter proposition #}
+        <div class="ps-16">
+            <button class="add-elms w-full rounded bg-teal-100 text-start font-bold p-2 " data-elm="proposition" data-ou=".add-proposition">+ Ajouter une nouvelle proposition</button>
+        </div>
+    </div>
+
+    {# Ajout d'une proposition : formulaire de la nouvelle proposition #}
+ 
+    <div data-elm-add="proposition"> 
+        <input class="fk hidden" name="create-proposition-xx-question" value=""/>
+        <div class="mb-1 flex w-full gap-1">
+            <input class="position bg-teal-200" type="number" name="create-proposition-xx-position" value="" required readonly>
+ 
+            <select class="headline bg-teal-200" name="" required disabled  >
+                <option value="">Réponse</option>
+            </select>
+            <p class="headline bg-teal-200" style="display:none">
+                <em class="italic"></em> : <span></span>
+            </p>
+
+
+            <div class="widget-content bg-teal-200">
+                {% include 'tuto/widget.html' with delete_name="proposition" delete_id=xx %}
+            </div>
+        
+        </div>
+
+        <textarea class="w-full" cols="29" rows="2" name="create-proposition-xx-proposition" ></textarea>
+        <div class="w-full flex py-1 text-center ">
+            <span>Est-ce la bonne réponse ? </span>
+            <input class="mx-6" type="checkbox" name="create-proposition-xx-good_answer">
+        </div>
+
+    </div>
+
+</div>
+{% include "alert_box.html" with alert="alert-delete" message="Voulez-vous supprimer définitivement cet élément et tout ce qu'il contient ?" act_button="remove-confirm" act_link="hidden" link="" back_text="Annuler" act_text="Supprimer" %}
+{% include "alert_box.html" with alert="alert-leave" message="" act_button="hidden" act_link="" link="" back_text="Retour" act_text="Effacer" %}
+<script type="module" src="{% static 'progress/js/tuto_admin.js' %}"></script>
+
+{% endblock %}
+
+
+

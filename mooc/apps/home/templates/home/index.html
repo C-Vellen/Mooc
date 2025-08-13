@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+    <section id="accueil" class="reachable">
+        <div class="mt-6 p-4 flex flex-col justify-center items-start bg-slate-200">
+            <div id="titre-mooc" class="mb-2 ">
+                <h1 class="text-header text-sm font-bold sm:text-lg">{{Accueil_titre.contenu}}</h1>
+            </div>
+            <div id="description-mooc" class="text-sm">
+                <p>{{Accueil_description.contenu}}</p>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="reachable mt-6 w-full">
+            
+        {% include 'tuto/nav_tuto.html' %}
+        {% include 'tuto/list.html' %}
+
+        
+
+    </section>
+
+{% endblock %}

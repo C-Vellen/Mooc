@@ -1,0 +1,136 @@
+{% extends 'base.html'%}
+
+{% load static tutos_extras %}
+
+{% block header %}
+<link rel="stylesheet" href="{% static 'dist/drag.css' %}" />
+<script src="{% static 'dist/set_form.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+
+<section class="mb-10 w-full flex justify-start items-start flex-col gap-8 ">
+
+    <div class="w-full mt-12 flex justify-between items-start flex-col gap-4 lg:flex-row">    
+        <h4 class="titre-accueil">Espace Gestionnaire de {{ user.username}} :</h4>
+        {% include 'progress/nav_buttons.html' %}         
+    </div> 
+
+    <h5 class="titre-rubrique">Gérer les catégories :</h5>
+
+
+    <form class="w-full flex flex-col justify-between items-center lg:flex-row lg:items-end" method="post" enctype="multipart/form-data" action="{% url 'progress:gestionnaire' %}">
+        {% csrf_token %}
+        <div class="relative w-full flex flex-col justify-center items-center ">
+            <p class="hidden absolute -top-8 messageDoublon italic text-red-600">Deux catégories ne peuvent avoir le même nom !</p>
+
+            <div id="category-update" class="add-category ml-10">
+                {% for category in categories %}
+                <div data-elm-add="category" class="h-8 w-96 flex items-center gap-2">
+                    <input class="position w-10 bg-white text-slate-400" type="number" name="update-category-{{category.id}}-position" value="{{category.position}}" >
+                    <div class="cat-content w-48">
+                        <span class="cat-button" style="display:inline;">{{category.name}}</span>
+                        <input class="cat-form h-6" style="display:none" type="text" minlength="1" maxlength="20" size='14' name="update-category-{{category.id}}-name" value="{{category.name}}">
+                    </div>
+                    <img class="cat-change w-6 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                    <div class="remove w-6">
+                        {% if category.has_notuto %}
+                            <img class="removecross greycross cursor-pointer" src="{%static 'tuto/img/cross-black.svg' %}"/>
+                            <img class="removecross redcross hidden cursor-pointer" src="{%static 'tuto/img/croix_ronde_rouge.svg' %}"/>
+                            <input class="hidden" type="checkbox" name="delete-category-{{category.id}}-"/>
+                        {% else %}
+                            <img class="w-6" src="{%static 'tuto/img/croix_ronde_inactive.svg' %}"/>
+                            <input class="hidden" type="checkbox" name="" disabled/>
+                        {% endif %}
+                    </div>
+                    <img class="handle w-8" src="{%static 'tuto/img/drag_dots_black.svg' %}"/>
+                </div>
+                {%endfor%}
+            </div>
+                    
+            {# bouton pour ajouter une nouvelle catégorie #}
+            <div class="my-4 h-8 max-w-96 flex items-center gap-2"></li>
+                <div class="cat-content mr-2">
+                    <span class="italic text-action1" style="display:inline;">Ajouter une catégorie</span>
+                </div>
+                <img class="add-elms w-6 plus cursor-pointer" data-elm="category" data-ou=".add-category" src="{% static 'tuto/img/plus_rond.svg' %}"/>
+            </div>
+        </div>
+        
+        <button type="submit" class="catSubmit green-button" name="" value="update">Valider</button>
+    </form>
+
+    <div id="elms" style="display: none;">
+        {# formulaire d'une nouvelle catégorie #}
+        <div data-elm-add="category" class="add-cat h-8 w-96 flex items-center gap-2">
+            <input class="position w10 bg-white text-slate-400" type="number" name="create-category-xx-position" value="">
+            <div class="cat-content w-48">
+                <input class="cat-form h-6" type="text" minlength="1" maxlength="20" size='14' name="create-category-xx-name" value="" placeholder="Nouvelle catégorie" required>
+            </div>
+            <img class="w-6" src="{% static 'tuto/img/crayon_inactif.svg' %}"/>
+            <div class="remove w-6">
+                <img class="removecross greycross cursor-pointer" src="{%static 'tuto/img/cross-black.svg' %}"/>
+                <img class="removecross redcross hidden cursor-pointer" src="{%static 'tuto/img/croix_ronde_rouge.svg' %}"/>
+                <input class="hidden" type="checkbox" name="delete-category-{{category.id}}-"/>
+            </div>
+            <img class="handle w-8" src="{%static 'tuto/img/drag_dots_black.svg' %}"/>
+        </div>
+    </div>
+
+    <h5 class="titre-rubrique">Les tutoriels en cours de rédaction, à valider, publier ou archiver :</h5>
+
+    {% for tb in tutobases %}
+    <div class="tutobase w-full" id="tb-{{tb.id}}">
+        {% for tuto in tb.get_all_tutos %}
+        <div class="tutorial w-full flex justify-start items-end flex-col gap-2" id="{{tuto.version}}">
+            {% include 'tuto/vignette_tuto.html' %}
+            <div class="w-full md:w-fit flex justify-end flex-row gap-2">
+
+                {% if tuto.submitted or tuto.rejected %}
+                <!-- <a class="dark-green-button " onclick="return confirm('Voulez-vous vraiment publier ce tutoriel ?')" href="{% url 'tuto:publish_tuto' tuto.slug %}">Publier</a> -->
+                <a class="publish-button dark-green-button " data-message="Voulez-vous vraiment publier ce tutoriel ?" data-link="{% url 'tuto:publish_tuto' tuto.slug %}">Publier</a>
+                {% endif %}
+
+                {% if tuto.submitted %}
+                <!-- <a class="red-button" onclick="return confirm('Voulez-vous vraiment rejeter ce tutoriel ?')" href="{% url 'tuto:reject_tuto' tuto.slug %}">Rejeter</a> -->
+                <a class="reject-button red-button" data-message="Voulez-vous vraiment rejeter ce tutoriel ?" data-link="{% url 'tuto:reject_tuto' tuto.slug %}">Rejeter</a>
+                {% endif %}
+
+                {% if tuto.published and not tuto.archived %}
+                <!-- <a class="red-button" onclick="return confirm('Voulez-vous vraiment archiver ce tutoriel (visible par tous mais les quiz seront désactivés) ?')" href="{% url 'tuto:archive_tuto' tuto.slug %}">Archiver</a> -->
+                <a class="archive-button red-button" data-message="Voulez-vous vraiment archiver ce tutoriel (visible par tous mais les quiz seront désactivés) ?" data-link="{% url 'tuto:archive_tuto' tuto.slug %}">Archiver</a>
+                {% endif %}
+
+                {% if tuto.published and tuto.archived %}
+                    {% if tuto.is_last_published_or_archived_version %}
+                    <!-- <a class="dark-green-button" onclick="return confirm('Voulez-vous vraiment réactiver ce tutoriel (on pourra à nouveau répondre aux quiz ?)')" href="{% url 'tuto:dearchive_tuto' tuto.slug %}">Désarchiver</a> -->
+                    <a class="dearchive-button dark-green-button" data-message="Voulez-vous vraiment réactiver ce tutoriel (on pourra à nouveau répondre aux quiz ?" data-link="{% url 'tuto:dearchive_tuto' tuto.slug %}">Désarchiver</a>
+                    {% endif %}
+                    <!-- <a class="red-button" onclick="return confirm('Voulez-vous vraiment retirer ce tutoriel de la publication ?')" href="{% url 'tuto:depublish_tuto' tuto.slug %}">Dépublier</a> -->
+                    <a class="depublish-button red-button" data-message="Voulez-vous vraiment retirer ce tutoriel de la publication ?" data-link="{% url 'tuto:depublish_tuto' tuto.slug %}">Dépublier</a>
+                {% endif %}
+
+                {% if not tuto.published and tuto.archived %}
+                <!-- <a class="dark-green-button" onclick="return confirm('Voulez-vous vraiment republier ce tutoriel ?')" href="{% url 'tuto:publish_tuto' tuto.slug %}">Republier</a> -->
+                <a class="republish-button dark-green-button" data-message="Voulez-vous vraiment republier ce tutoriel ?" data-link="{% url 'tuto:publish_tuto' tuto.slug %}">Republier</a>
+                <!-- <a class="red-button" onclick="return confirm('Voulez-vous supprimer définitivement ce tutoriel ?')" href="{% url 'tuto:delete_tuto' tuto.slug %}">Supprimer</a> -->
+                <a class="delete-button red-button" data-message="Voulez-vous supprimer définitivement ce tutoriel ?" data-link="{% url 'tuto:delete_tuto' tuto.slug %}">Supprimer</a>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% empty %}
+        <p class="italic">Il n'y a pas encore de tutoriel.</p>
+    {% endfor %}
+    
+    <div class="w-full mt-8">
+        {% include 'progress/nav_buttons.html' %}
+    </div>
+
+</section>
+{% include "alert_box.html" with alert="alert-update" message="" act_button="hidden" act_link="" link="" back_text="Annuler" act_text="" %}
+<script type="module" src ="{% static 'progress/js/tuto_admin.js' %}"></script>
+
+{% endblock %}

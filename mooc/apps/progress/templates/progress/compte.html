@@ -1,0 +1,47 @@
+{% extends 'base.html'%}
+
+{% load static tutos_extras %}
+
+{% block content %}
+
+<section class="mb-8 w-full flex justify-start items-start flex-col gap-8">
+
+    <div class="w-full mt-12 flex justify-between items-start flex-col gap-4 lg:flex-row">    
+        <div class="">
+            <h4 class="titre-accueil">Compte personnel de {{user.first_name}} {{user.last_name}}</h4>
+            <p class="italic text-slate-600">{{user|groups_list}}</p>
+            <p class="min-w-40 leading-8 mt-1 text-xs sm:text-sm"> 
+                <span class="mr-2 italic text-sm">Accès : </span>
+                {% if user.get_restrictions %}
+                    {% for res in user.get_restrictions %}
+                    <span class="restriction-choice access-button">{{res.name}}</span> 
+                    {% endfor %}
+                {% else %}
+                    <span class="access-button">Tout public</span> 
+                {% endif %}
+            </p>
+        </div>
+        {% include 'progress/nav_buttons.html' %}
+    </div>
+
+    <h5 class="w-full bg-slate-300 text-lg px-4 py-1 font-bold">Mes tutoriels en cours :</h5>
+    
+    <div class="mb-8 w-full">
+    {% for tp in tp_list %}
+        <div class="mt-4 w-full">
+            {% include 'tuto/vignette_tuto.html' with tuto=tp.tuto %}
+        </div>
+    {% empty %}
+        <p>Vous n'avez démarré aucun tutoriel</p>
+    {% endfor %}
+    </div>
+
+    <div class="w-full mt-8">
+        {% include 'progress/nav_buttons.html' %}
+    </div>
+    
+</section>
+
+<script src="{% static 'progress/js/affichage_titre_bar.js' %}"></script>
+
+{% endblock %}

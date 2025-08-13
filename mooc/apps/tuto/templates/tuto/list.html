@@ -1,0 +1,24 @@
+{% load static %}
+
+{% block header %}
+{% endblock %}
+
+<div class="my-4 text-sm">
+{{ titre_page }}
+{% if utilisateur == "Auteur" %}
+    <em>{{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
+    <a class="action-button" href="{% url 'progress:auteur' %}">Retour</a>
+{% elif utilisateur == "Gestionnaire" %}
+    <em>{{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
+    <a class="action-button" href="{% url 'progress:gestionnaire' %}">Retour</a>
+{% endif %}
+</div>
+
+<div class="liste_tutos w-full gap-4 flex flex-col justify-start items-center">
+{% for tp in tp_list %}
+    {% include 'tuto/vignette_tuto.html' with tuto=tp.tuto %}
+{% empty %}
+    <h3 class="m-6 text-sm">{{ titre_vide }} </h3>
+{% endfor %}
+</div>
+

@@ -1,0 +1,18 @@
+{
+  "name": "mooc",
+  "version": "1.0.0",
+  "description": "Projet de Mooc ================================================================== python3.8 / django 4.2  pour base de donnée postgresql auteur : Christophe Vellen",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "dragula": "^3.7.3",
+    "laravel-mix": "^6.0.49"
+  }
+}

@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+/* Boutons d'action */
+.cat-button {
+    @apply px-2 py-1 text-sm text-action1 bg-slate-200;
+}
+
+.access-button {
+    @apply px-2 py-1 mr-2 rounded-full bg-access text-white text-center
+}
+
+.access-select {
+    @apply pl-2 bg-access/80 text-white hover:bg-access/50 hover:font-bold cursor-pointer focus:bg-access/80
+}
+
+.access-noselect {
+    @apply pl-2 hover:text-white hover:bg-access/50 hover:font-bold cursor-pointer
+}
+
+.cat-form {
+    @apply border-action1 text-action1 bg-slate-100 focus:border-none focus:outline-none focus:outline-action1 focus:outline-offset-0 focus:outline-1;
+}
+
+.action-button {
+    @apply cat-button hover:text-slate-100 hover:bg-action1 cursor-pointer;
+}
+
+.action-button1 {
+    @apply px-4 py-2 rounded-md bg-action1 text-white text-center font-bold text-sm hover:bg-action1/80 hover:transition-all max-w-80 cursor-pointer;
+}
+
+.action-button2 {
+    @apply px-4 py-2 rounded-md bg-action2 text-white text-center font-bold text-sm hover:bg-action2/80 hover:transition-all max-w-80 cursor-pointer;
+}
+
+.grey-button {
+    @apply w-1/4 sm:w-40 m-0 py-1 px-4 rounded-md shadow-inner hover:shadow-md text-center text-xs sm:text-base text-slate-800 bg-slate-100 hover:bg-slate-200 hover:transition-all cursor-pointer;
+}
+
+.green-button {
+    @apply w-1/4 sm:w-40 m-0 py-1 px-4 rounded-md shadow-inner hover:shadow-md text-center text-xs sm:text-base text-slate-800 bg-green-100 hover:bg-green-200 hover:transition-all cursor-pointer;
+}
+
+.dark-green-button {
+    @apply w-1/4 sm:w-40 m-0 py-1 px-4 rounded-md shadow-inner hover:shadow-md text-center text-xs sm:text-base text-slate-100 bg-green-500 hover:bg-green-600 hover:transition-all cursor-pointer;
+}
+
+.red-button {
+    @apply w-1/4 sm:w-40 m-0 py-1 px-4 rounded-md shadow-inner hover:shadow-md text-center text-xs sm:text-base text-slate-100 bg-red-500 hover:bg-red-600 hover:transition-all cursor-pointer;
+}
+
+/* flèches */
+.unfold-caret {
+    @apply ml-4 w-0 h-0 border-solid border-l-transparent border-r-transparent border-t-header border-l-[8px] border-r-[8px] border-t-[12px] sm:border-l-[10px] sm:border-r-[10px] sm:border-t-[14px] duration-300;
+}
+
+.left-arrow {
+    @apply w-0 h-0 border-solid border-t-[10px] border-b-[10px] border-r-[12px] border-t-transparent border-b-transparent border-r-slate-700 hover:border-r-action1;
+}
+
+.right-arrow {
+    @apply w-0 h-0 border-solid border-t-[10px] border-b-[10px] border-l-[12px] border-t-transparent border-b-transparent border-l-slate-700 hover:border-l-action1;
+}
+
+.right-arrow-inactive {
+    @apply w-0 h-0 border-solid border-t-[10px] border-b-[10px] border-l-[12px] border-t-transparent border-b-transparent border-l-slate-400;
+}
+
+
+/* classes de style des formulaires de update_tuto.html */
+.position {
+    @apply w-10 text-center border-0 rounded;
+}
+
+.headline {
+    @apply w-full p-2 text-base border-0 rounded truncate;
+}
+
+.fold {
+    @apply w-8 text-center border-0 font-extrabold text-xl cursor-pointer;
+}
+
+.widget-page {
+    @apply min-w-28 px-2 flex flex-row justify-end items-center gap-1 rounded;
+}
+
+.widget-content {
+    @apply min-w-28 px-2 flex flex-row justify-end items-center gap-1 rounded;
+}
+
+.widget-list {
+    @apply min-w-20 px-2 flex flex-row justify-end items-center gap-1 rounded;
+}
+
+/* bandeaux titres des compte personnel, espace Auteur et espace Gestionnaire */
+.titre-accueil {
+    @apply w-full text-xl font-bold;
+}
+
+.titre-rubrique {
+    @apply w-full bg-slate-300 text-lg px-4 py-1 font-bold;
+}
+
+/* suppressions des flèches up/down de input type=number */
+.position::-webkit-inner-spin-button,
+.position::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.position {
+    -moz-appearance: textfield;
+}
+
+/* décalage du scroll pour les ancres */
+.reachable {
+    @apply target:pt-[80px] target:-mt-[80px]
+}

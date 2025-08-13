@@ -1,0 +1,304 @@
+{% load static tutos_extras %}
+
+<!-- flex-col  -->
+<div class="relative overflow-hidden p-4 w-full flex flex-col justify-between bg-slate-100 border-slate-100 hover:bg-slate-50 border-[1px] hover:border-header">
+    
+    {% if tuto.archived %}
+        <div class="absolute top-8 -left-12 -rotate-45 px-12 text-sm sm:text-base lg:text-lg font-bold bg-slate-800 text-slate-200">ARCHIV&#201;</div>
+    {% endif %}
+
+    <!-- flex-row  -->
+    <div class="vignette-tuto w-full gap-4 flex flex-row">
+
+        <!-- image -->
+        {% if tuto_form %}
+        <div class="load-image relative hidden md:block md:w-1/3">
+            <div>
+                <img class="img-preview w-full" src="{{tuto|find_img}}" alt="">
+                <label for="tuto-image" class="absolute w-12 top-2 right-2">
+                    <img class="w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                </label>
+                <input id="tuto-image" class="hidden" type="file" name="{{ tuto|input_image:tuto_header }}" accept="image/*" >
+            </div>
+        </div>
+        {% else %}
+        <div class="hidden md:block md:w-1/3 h-fit">
+            <img class="w-full" src="{{ tuto|find_img }}" alt="">
+        </div>
+        {% endif %}
+
+
+        <!-- flex-col -->
+        <div class="w-full md:w-2/3 lg:w-3/4 gap-2 flex flex-col justify-between">
+            <!-- info  -->
+                
+            <!-- ligne categorie - version  -->
+            <div class="w-full gap-2 flex flex-col-reverse sm:flex-row justify-between">
+                <!-- ligne category -->
+                <div class="h-8 flex text-xs sm:text-sm">
+                    <div class="min-w-20">
+                        <span class="italic">Catégorie : </span>
+                    </div>
+                    <div class="relative w-full">
+                        {% if tuto_form %}
+                        <div class="category-list w-48 flex justify-between text-action1">  
+                            <div class="flex gap-2">                 
+                            {% if not tuto.category %}
+                                <span class="italic">Choisir la catégorie</span>
+                            {% endif %} 
+                            {% for cat in categories %} 
+                                {% if cat == tuto.category %}  
+                                    <span id="list-c{{cat.id}}" class="cat-button -mt-1">{{cat.name}} </span>
+                                {% else %}
+                                    <span id="list-c{{cat.id}}" class="cat-button hidden">{{cat.name}} </span>
+                                {% endif %} 
+                            {% endfor %}
+                            </div>
+                            <img class="change-category w-6 cursor-pointer rotate-180 duration-100 ease-linear" src="{% static 'tuto/img/dropdown-up-black.svg' %}"/>
+                        
+                        </div>
+                        <div class="category-choice hidden absolute top-0 left-0 w-40 py-1 z-10 flex flex-col text-action1 bg-white border-slate-500 border shadow-lg shadow-slate-500 rounded-sm">
+                        
+                                <ul class="">
+                                    {% for cat in categories %}
+                                    <li id="c{{cat.id}}" class="mx-1">
+                                        {% if cat == tuto.category %} 
+                                            <p class="category-choice pl-2 bg-slate-200 font-bold hover:bg-slate-300 cursor-pointer">{{cat.name}}</p> 
+                                        {% else %}
+                                            <p class="category-choice pl-2 hover:bg-slate-300 cursor-pointer">{{cat.name}}</p> 
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                <select class="category-option hidden" id="category" name="{{ tuto|input_category:tuto_header }}">
+                                    {% for cat in categories %}
+                                            {% if cat == tuto.category %} 
+                                                <option id="option-c{{cat.id}}" class="" value="{{cat.id}}" selected>{{cat.name}}</option>
+                                            {% else %}
+                                                <option id="option-c{{cat.id}}" class="" value="{{cat.id}}">{{cat.name}}</option>
+                                            {% endif %}
+                                        
+                                    {% endfor %}
+                                </select>
+                        </div>                        
+                    
+                    
+                        {% else %}
+                            <span class="cat-button">{{tuto.category.name}} </span>
+                        {% endif %}
+                    </div>             
+                </div>
+            
+                <!-- ligne version -->
+                {% if tuto_header == "admin" %}
+                <div class="sommaire_box">
+                    <div class="dropdown w-40 text-xs h-6 md:w-56 md:h-8 md:text-base py-1 px-2 bg-white border-slate-400 border-2 rounded text-sm font-bold hover:cursor-pointer">
+                        <span>{{tuto.get_tuto_status}}</span>
+                    </div>
+                    <ul class="menu collapse absolute w-56 py-1 px-2 border-slate-200 border-2 bg-white text-sm">
+                            {% for t in tb.get_all_tutos %}
+                                <li class="selection hover:cursor-pointer hover:bg-slate-200" id="{{tb.id}}-{{t.version}}">{{ t.get_tuto_status }}</li>
+                            {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ligne restrictions -->
+            <div class="flex text-xs sm:text-sm">
+                <div class="min-w-20">
+                    <span>Accès : </span>
+                </div>
+                <div class=" w-full">
+                    {% if tuto_form %}
+                    <div class="access-list flex items-start gap-2 justify-start text-access">     
+                        <p class="min-w-40 leading-8 -mt-1">                 
+                        {% if tuto_restrictions %}
+                            <span id="list-for-all" class="hidden access-button">Tout public</span>
+                        {% else %}
+                            <span id="list-for-all" class="access-button">Tout public</span>
+                        {% endif %}
+                        {% for res in restrictions %} 
+                            {% if res in tuto_restrictions %}  
+                                <span id="list-p{{res.id}}" class="access-button">{{res.name}} </span>
+                            {% else %}
+                                <span id="list-p{{res.id}}" class="hidden access-button">{{res.name}} </span>
+                            {% endif %} 
+                        {% endfor %}
+                        </p>
+                    
+                        <img class="change-access w-6 cursor-pointer rotate-180 duration-100 ease-linear" src="{% static 'tuto/img/dropdown-up-black.svg' %}"/>
+                    
+                    </div>
+                    <div class="absolute">
+                    
+                        <div class="access-choice hidden absolute top-0 left-0   w-40 overflow-auto h-48 z-10 flex flex-col text-slate-700 bg-white border-slate-500 border shadow-lg shadow-slate-500 rounded-sm   duration-100 ease-linear">
+                            <ul>
+                                <li id="for-all" class="mx-1">
+                                    {% if tuto_restrictions %}
+                                        <p class="restriction-choice access-noselect">Tout public</p>                                    
+                                    {% else %}
+                                        <p class="restriction-choice access-select">Tout public</p> 
+                                    {% endif %}
+                                </li>
+                                {% for res in restrictions %}
+                                <li id="p{{res.id}}" class="mx-1">
+                                    {% if res in tuto_restrictions %} 
+                                        <p class="restriction-choice access-select">{{res.name}}</p> 
+                                    {% else %}
+                                        <p class="restriction-choice access-noselect">{{res.name}}</p> 
+                                    {% endif %}
+                                </li>
+                            
+                                {% endfor %}
+                            
+                            </ul>
+                            <select class="access-option hidden" id="restriction" name="{{ tuto|input_restriction:tuto_header }}" multiple>
+                                {% for res in restrictions %}
+                                        {% if res in tuto_restrictions %} 
+                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}" selected>{{res.name}}</option>
+                                        {% else %}
+                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}">{{res.name}}</option>
+                                        {% endif %}
+                                {% endfor %}
+                            </select>
+                        
+                        </div>     
+                    </div>
+                
+                
+                    {% else %}
+                    
+                    <p class="min-w-40 leading-8 -mt-1">
+                        {% if tuto.get_restrictions %}
+                            {% for res in tuto.get_restrictions %}
+                            <span class="restriction-choice access-button">{{res.name}}</span> 
+                            {% endfor %}
+                        {% else %}
+                            <span class="access-button">Tout public</span> 
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        
+            <!-- ligne titre -->
+            <div class="w-full flex flex-row justify-between font-bold text-sm sm:text-base lg:text-lg ">
+                {% if tuto_form %}
+                    <input class="inline w-full" id="title" type="text" maxlength="200" name="{{ tuto|input_title:tuto_header}}" value="{{tuto.title}}" placeholder="Ecrivez le titre ..." required>
+                {% else %}
+                    <h2 class="">{{ tuto.title }}</h2> 
+                {% endif %}
+            </div>
+
+            <!-- ligne auteur-date  -->
+            <div class="w-full text-xs sm:text-sm flex flex-col sm:flex-row justify-between">
+                <div class="italic">{{ tuto|tuto_author:user }}</div>
+                <div class="italic">{{ tuto|tuto_date }}</div>
+            </div>
+
+            <!-- image -->
+            {% if tuto_form %}
+            <div class="load-image relative w-full md:hidden">
+                <img class="img-preview w-full" src="{{tuto|find_img}}" alt="">
+                <label for="tuto-image" class="absolute w-12 top-2 right-2">
+                    <img class="w-10 cursor-pointer" src="{% static 'tuto/img/crayon.svg' %}"/>
+                </label>
+                <input id="tuto-image" class="hidden" type="file" name="{{ tuto|input_image:tuto_header }}" accept="image/*" >
+            </div>
+            {% else %}
+            <div class="w-full md:hidden">
+                <img class="w-full" src="{{ tuto|find_img }}" alt="">
+            </div>
+            {% endif %}
+
+            <!-- texte  -->
+            <div class="w-full">
+                {% if tuto_form %}
+                <textarea class="w-full h-24 p-2 my-2" id="resume" maxlength="1000" name="{{ tuto|input_resume:tuto_header}}" placeholder="Rédigez en 2 ou 3 phrases un résumé qui donne envie de faire ce tutoriel ..." required>{{tuto.resume}}</textarea>
+                {% else %}
+                <p class="my-2 text-xs sm:text-sm">{{ tuto.resume|linebreaksbr }}</p>
+                {% endif %}
+            </div>
+
+            <!-- bouton  -->
+            <p class="w-full text-sm text-right">
+                {% if tuto.get_all_pages and not tuto_form %}
+                    {% if tuto_header == "admin" %}
+                    <a href="{% url 'tuto:read_tuto' tuto.slug 1 %}" class="action-button">Visualiser</a> 
+                    {% else %}
+                    <a href="{% url 'tuto:read_tuto' tuto.slug tp.next_page %}" class="action-button">{{ tp|call_to_read:tuto_header }}</a> 
+                    {% endif %}
+                {% endif %}
+            </p>
+        </div> 
+    </div>
+
+       
+   
+    <!-- progression  -->
+    {% if tuto_header == "progress" %}
+    
+    <div class="mt-4 p-2 flex flex-col justify-center items-center  bg-slate-300 text-sm sm:text-base lg:text-lg md:flex-row">
+        <div class="w-full flex flex-row justify-between         md:w-1/4 md:flex-col ">
+            <p class="font-bold">Progression</p>
+            <p class="font-bold text-right md:hidden">{{ tp|tuto_progression }}</p>
+            <p class="hidden md:inline">Note aux quiz</p>
+        </div>
+
+        <div class="relative w-full mt-2 sm:mt-4 mx-4 flex flex-row justify-center items-center gap-2">
+            {% for pp in tp.set_all_pageprogress %}
+    
+                {% if pp.page.page_number <= tp.next_page  or tp.is_finished %}
+                <div class="page-index md:relative overflow-visible w-full flex flex-col justify-center">
+                    <a href="{% url 'tuto:read_tuto' tp.tuto.slug pp.page.page_number %}" >
+                        <div class="w-full flex flex-col justify-center items-center text-xs sm:text-sm">
+                            {% if pp.finished %}
+                            <div class="page-bar w-full h-3 bg-green-500 border-black rounded-lg cursor-pointer hover:bg-green-400"></div>
+                            <div class="mt-1 text-slate-800">{{ pp|page_notation }}</div>
+                            {% else %}
+                            <div class="page-bar w-full h-3 bg-slate-500 border-black rounded-lg cursor-pointer hover:bg-slate-400"></div>
+                            <div class="notation text-slate-500">{{ pp|page_notation }}</div>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="titre-page hidden absolute -top-10 px-2 text-nowrap text-center text-slate-600 bg-slate-100 border-2 rounded-xl border-slate-500">
+                        <p class="text-xs text-center md:text-sm">{{pp.page.page_number}}-{{ pp.page.page_title }}</p>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="page-index md:relative overflow-visible w-full flex flex-col justify-center">
+                    <span>
+                        <div class="w-full flex flex-col justify-center items-center text-xs sm:text-sm">
+                            {% if pp.finished %}
+                            <div class="page-bar w-full h-3 bg-green-500 border-black rounded-lg"></div>
+                            <div class="mt-1 text-slate-800">{{ pp|page_notation }}</div>
+                            {% else %}
+                            <div class="page-bar w-full h-3 bg-slate-500 border-black rounded-lg"></div>
+                            <div class="notation text-slate-500">{{ pp|page_notation }}</div>
+                            {% endif %}
+                        </div>
+                     
+                    </span>
+                    <div class="titre-page hidden absolute -top-10 px-2 text-nowrap text-center text-slate-600 bg-slate-300 border-2 rounded-xl border-slate-500">
+                        <p class="text-xs text-center md:text-sm">{{pp.page.page_number}}-{{ pp.page.page_title }}</p>
+                    </div>
+                </div>
+
+                {% endif %}
+
+            {% endfor %}
+        </div>
+        
+        <div class="w-full mt-0 md:mt-4 flex flex-row justify-between   text-sm sm:text-base lg:text-lg   md:w-1/12 md:flex-col">
+            <p class="md:hidden">Note aux quiz</p>
+            <p class="hidden w-full font-bold text-right text-lg md:inline">{{ tp|tuto_progression }}</p>
+            <p class="text-right">{{ tp|tuto_notation }}</p>
+        </div>
+
+    </div>
+    
+    {% endif %}
+
+</div>           

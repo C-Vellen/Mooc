@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% load static tutos_extras %}
+
+{% block content %}
+
+
+    {% include 'tuto/header_tuto.html' %}
+    <div class="w-full my-10">
+        <div class=" mx-8 flex justify-start items-start flex-col gap-4 md:max-w-2xl md:mx-auto">
+ 
+        {# Affichage du contenu de la page #}
+            {% for content in current_page.get_all_contents %}
+
+                {% if content.contenttype == 'TI' %}
+                   <div id="{{content.id}}" class="reachable">
+                       <h3 class="text-xl sm:text-2xl font-bold">{{content.texte}}</h3>
+                   </div>
+                {% endif %}
+                {% if content.contenttype == 'ST' %}
+                   <div id="{{content.id}}" class="reachable">
+                       <h4 class="text-sm sm:text-base font-bold">{{content.texte}}</h4>
+                   </div>
+                {% endif %}
+
+                {% if content.contenttype == 'PA' %}
+                    <p id="{{content.id}}" class="text-sm sm:text-base text-left">{{content.texte|linebreaksbr}}</p>
+                {% endif %}
+
+                {% if content.contenttype == 'IM' %}
+                <div class="w-full flex flex-col justify-center items-center">
+                    <div class="" style="width:{{ content.percent_scale }}%;" >
+                        <img class="w-full" id="{{content.id}}" src="{{content|find_img}}" alt="{{content.title}}">
+                        <p class="text-sm sm:text-base italic">{{content.texte}}</p>
+                    </div>
+                </div>
+                {% endif %}
+                {% if content.contenttype == 'VI' %}
+                <div class="w-full flex flex-col justify-center items-center">
+                    <video class="w-full" controls>
+                        <source src="{{content|find_video}}"/>
+                        <p>Votre navigateur ne prend pas en charge cette video. <a href="{{content|find_video}}">Télécharger la video.</a></p>
+                    </video>
+                    <p class="text-sm sm:text-base italic">{{content.texte}}</p>
+                </div>
+                {% endif %}
+                {% if content.contenttype == 'LI' %}
+                <ul id="{{content.id}}" class="list-disc px-8">
+                   {% for c in content.get_all_listitems %}
+                       <li class="text-sm sm:text-base">{{c.texte|linebreaksbr}}</li>
+                   {% endfor %}
+                </ul>
+                {% endif %}
+
+            {% endfor %}
+
+            {# Formulaire #}
+            <form id="quiz" class="w-full reachable text-sm sm:text-base" action="{% url 'tuto:read_tuto' tuto.slug current_page.page_number %}#quiz" method="post" >
+            {% csrf_token %}
+
+            {% if current_page.get_all_questions %}
+            {# Si il y a un quiz : #}
+                <h3 class="w-full text-xl sm:text-2xl text-center mt-8 mb-4  bg-slate-300 font-bold">Quiz</h3>
+                
+                {# En-tête quiz : nombre de tentatives et note #}
+                {% if current_pageprogress.quiztry > 0 %}
+                <div class="pl-2 pr-4 mb-4 w-full flex justify-between bg-teal-100 text-slate-700 italic p-1">
+                    <div class="w-full">{{current_pageprogress.quiztry|ordinal}} tentative.</div>
+                    {% if current_pageprogress.deactivated %}
+                    <div class="w-full text-right font-bold">Note: {{ current_pageprogress|page_notation }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {# Questions du quiz #}
+                {% for qp in current_pageprogress.get_all_questionprogress %}  
+
+               
+                    {% if current_pageprogress.deactivated %}
+                        {% if qp.question_score %}
+                        <div class="mt-8 w-full flex justify-between bg-green-200">
+                            <div class="w-full font-bold">Question {{qp.question.position}}</div>
+                            <img class="mr-6 w-6 text-xs text-right" src="{% static 'tuto/img/mark_green_check.svg' %}"/>
+                        </div>
+                        {% else %}
+                        <div class="mt-8 w-full flex justify-between bg-red-200">
+                            <div class="w-full font-bold">Question {{qp.question.position}}</div>
+                            <img class="mr-6 w-6 text-xs text-right" src="{% static 'tuto/img/mark_red_cross.svg' %}"/>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <div class="mt-8 w-full font-bold">Question {{qp.question.position}}</div>
+                    {% endif %}
+
+                    <p class="w-full">{{qp.question.question|linebreaksbr}}</p>
+                    {% if qp.question.multiresponse %}
+                    <p class="italic text-slate-500">Plusieurs réponses possibles.</p>
+                    {% endif %}
+
+                    {# Propositions pour chaque question #}
+                    {% for pp in qp.get_all_propositionprogress %}
+                    <div class="w-full flex gap-2">
+                        <div class="w-8 text-right font-bold">{{ pp.proposition.position }}- </div>
+                        <div class="w-full">{{ pp.proposition.proposition|linebreaksbr }}</div>
+                        <div class="w-12 flex">
+                            {% if current_pageprogress.deactivated %}
+                        {# Quiz terminé, ou tuto archivé(coches disabled) #}
+                            {% if pp.user_answer %}
+                            <input class="" type="checkbox" name="" checked disabled/>
+                            {% else %}
+                            <input class="valid" type="checkbox" name="" disabled />
+                            {% endif %}
+                        {% else %}
+                        {# Quiz en cours (coches actives) #}
+                        {% if pp.user_answer %}
+                            <input class="valid {{ qp.question|multiresponse}}" type="checkbox" name="{{pp.proposition.id}}" checked />
+                            {% else %}
+                            <input class="valid {{ qp.question|multiresponse}}" type="checkbox" name="{{pp.proposition.id}}" />
+                            {% endif %}
+                        {% endif %}
+
+                        {# Correction (n'apparait que si demandé) #}
+                        {% if current_pageprogress.deactivated %} 
+                            {# {% if pp.proposition.good_answer %} #}
+                            {# <input class="correction hidden appearance-none accent-slate-500" type="checkbox" name="" checked disabled/> #}
+                            {# {% else %} #}
+                            {# <input class="correction hidden valid appearance-none accent-slate-500" type="checkbox" name="" disabled /> #}
+                            {# {% endif %} #}
+                            {% if pp.result %}
+                            <img class="correction hidden mr-0 h-4 text-xs text-right" src="{% static 'tuto/img/mark_green_check.svg' %}"/>
+                            {% else %}
+                            <img class="correction hidden mr-0 h-4 text-xs text-right" src="{% static 'tuto/img/mark_red_cross.svg' %}"/>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    </div>
+                    {% endfor %}
+
+                    {# Note, commentaire et explication pour chaque question #}
+                    {% if current_pageprogress.deactivated %}
+                    <div class="correction hidden mt-4 p-2 w-full bg-teal-100 text-slate-700"> 
+                            <p class="italic">{{ qp|question_notation }}</p>
+                            {% if qp.question_score %}
+                            <span class="italic">Bravo, c'est la bonne réponse !</span>
+                            {% else %}
+                            <span class="italic">Il y a quelques erreurs ...</span>
+                            {% endif %}
+                            <span class="italic">{{qp.question.explication|linebreaksbr}}</span>
+                    </div>
+                    {% endif%}
+                {% endfor %}
+       
+                {# boutons d'action "Valider", "Recommencer" et "Correction" #}
+                <div class="mt-12 flex justify-center items-center flex-col gap-4 lg:flex-row lg:gap-8">    
+                    {% if current_pageprogress.finished and not tuto.archived %} 
+                        <button class="action-button1 min-w-52" name="redo" value="">
+                            Recommencer le quiz
+                        </button>
+                    {% endif %}
+
+                    {% if current_pageprogress.deactivated %}
+                        <div class="display-correction action-button1 min-w-52">Afficher la correction</div>
+                        <div class="hide-correction hidden action-button1 min-w-52">Masquer la correction</div>                
+                    {% else %}
+                    {# bouton "Valider" (quiz en cours) #}
+                        <button class="action-button1 min-w-52" >Valider les réponses</button>
+                    {% endif %}
+                </div> 
+                    
+            {% elif not tuto.archived %}
+            {# S'il n'y a pas de quiz : #}
+                <div class="mt-12 flex justify-center items-center flex-col gap-4 lg:flex-row lg:gap-8">    
+                    {% if current_pageprogress.finished %} 
+                        <button class="action-button1 min-w-52" name="next" value="createback" >Marquer comme non lue</button>
+                    {% else %}
+                       <button class="action-button1 min-w-52" name="next" value="createback" >Marquer comme lue</button>
+                    {% endif %}
+                </div>
+            {% endif %}
+            </form>
+
+            <div class="w-full gap-4 flex flex-row justify-center" >
+                {% if current_page.page_number > 1 %}
+                    <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:-1 %}" class="left-arrow"></a>
+                {% endif %}
+                <p class="">Page: {{current_page.page_number}}</p>
+                {% if current_page.page_number < tuto.get_pages_total_number  %}
+                    {% if  current_pageprogress.finished %}
+                        <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:1 %}" class="right-arrow"></a>
+                    {% elif current_page.page_number < tuto.get_pages_total_number%}
+                        <span class="right-arrow-inactive"></span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            
+
+        </div>
+    </div>
+
+    <script src="{% static 'tuto/js/read_tuto.js' %}"></script>
+
+{% endblock %}
+

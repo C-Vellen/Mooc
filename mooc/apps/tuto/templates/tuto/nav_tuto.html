@@ -1,0 +1,32 @@
+{% load static %}
+
+{% block header %}
+{% endblock %}
+<div class="mt-4 mb-8 w-full gap-4 flex flex-row justify-between items-start">
+    <ul class="navbar-categories gap-2 flex flex-col justify-start items-start sm:flex-row">
+        <li>
+            <a href="{% url 'tuto:listing' %}" class="action-button font-bold">{{ titre_tous }}</a>
+        </li>
+
+        {% for category in categories %}
+            {% if category == category_select %}
+                <li>
+                    <a href="{% url 'tuto:listing_cat' category.slug %}" class="px-2 py-1 text-sm text-slate-100 bg-action1">{{ category.name }}</a>
+                </li>
+            {% else %}
+                <li>
+                    <a href="{% url 'tuto:listing_cat' category.slug %}" class="action-button">{{ category.name }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+
+    
+    <form class="m-0 w-40 gap-2 flex flex-row" action="{% url 'tuto:listing_search' %}" method='get' accept-charset="utf-8">
+        <input type="search" class=" my-0 py-0 w-32 border-x-0  border-t-0 border-b-[1px] text-sm focus:ring-0 focus:border-header focus:border-b-2" name='query'>
+        <input type="image" id="bouton-loupe" class="h-6" src="{%static 'tuto/img/loupe.svg' %}" alt='rechercher'>
+    </form>
+        
+    
+</div>
+
