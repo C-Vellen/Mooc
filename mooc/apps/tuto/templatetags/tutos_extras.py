@@ -44,7 +44,7 @@ def tuto_progression(tutoprogress):
             * tutoprogress.get_page_finished
             / tutoprogress.tuto.get_pages_total_number
         )
-    except ZeroDivisionError:
+    except (ZeroDivisionError, AttributeError):
         return "-"
 
 
@@ -61,11 +61,17 @@ def page_notation(pageprogress):
 
 @register.filter
 def tuto_notation(tutoprogress):
-    if tutoprogress.tuto_max_score_done > 0:
+    # if tutoprogress.tuto_max_score_done > 0:
+    #     return "{} / {}".format(
+    #         tutoprogress.tuto_score, tutoprogress.tuto_max_score_done
+    #     )
+    # else:
+    #     return "-"
+    try:
         return "{} / {}".format(
             tutoprogress.tuto_score, tutoprogress.tuto_max_score_done
         )
-    else:
+    except (ZeroDivisionError, AttributeError):
         return "-"
 
 

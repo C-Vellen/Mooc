@@ -3,29 +3,47 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 
 from home.context import usercontext
 from user.views import is_author, is_gestionnaire
-from tuto.models import TutoBase, Category
+from tuto.models import TutoBase, Tutorial, Category
 from tuto.update_data import update_data
 from .models import TutoProgress
 
 
 def compte(request):
+    context = usercontext(request)
+    context.update(
+        {
+            "titre_onglet": "Mon compte",
+            "tuto_form": False,
+            "tuto_header": "progress",
+        }
+    )
     if request.user.is_authenticated:
         print("---> user is authenticated")
-        context = usercontext(request)
         context.update(
             {
-                "titre_onglet": "Mon compte",
                 "tp_list": request.user.tutoprogress.all(),
-                "tuto_form": False,
-                "tuto_header": "progress",
                 "author_link": request.user.is_author,
                 "gestionnaire_link": request.user.is_gestionnaire,
+                "connexion_link": False,
             }
         )
-        return render(request, "progress/compte.html", context)
     else:
         print("---> user is NOT authenticated")
-        return redirect("user:connexion")
+        tuto_list = (
+            Tutorial.objects.filter(published=True).order_by("-updated_at").distinct()
+        )
+        context.update(
+            {
+                "tp_list": [{"tuto": tuto} for tuto in tuto_list],
+                "author_link": False,
+                "gestionnaire_link": False,
+                "connexion_link": True,
+            }
+        )
+
+    return render(request, "progress/compte.html", context)
+
+    # return redirect("user:connexion")
 
 
 @login_required

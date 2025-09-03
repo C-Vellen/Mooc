@@ -3,7 +3,7 @@ from django.contrib.sessions.models import Session
 
 
 def show_sessions():
-    """Affiche les sessions stockées en bd"""
+    """Affiche toutes les sessions stockées en bd"""
     print("\n******** LISTE DES SESSIONS ENREGISTREES EN BD : *************")
     print("Fields:")
     fieldList = Session._meta.get_fields()
@@ -19,12 +19,8 @@ def show_sessions():
 
 
 def show_request(request: dict):
-    """Affiche le dictionnaire de la session en cours
-
-    Args:
-        session (_type_): _dict
-    """
-    print("******** REQUEST : *************")
+    """Affiche le dictionnaire de la session en cours"""
+    print("\n******** REQUEST : *************")
 
     if request.user:
         print("=> request.user:", request.user)
@@ -33,11 +29,11 @@ def show_request(request: dict):
         s = request.session
         print("=> request.session :")
         try:
-            print(f"\t{'session_key':<15} : {s.session_key[:8]:<15}")
+            print(f"\t-> {'session_key':<15} : {s.session_key[:8]:<15}")
         except TypeError:
             print("\tSESSION EXPIREE: IMPOSSIBLE DE RECUPERER LA SESSION")
         for k, v in request.session.items():
-            print(f"\t{k:<15} : {v}")
+            print(f"\t-> {k:<15} : {v}")
 
     print("=> session stockée en bd dans l'objet Session:")
     try:

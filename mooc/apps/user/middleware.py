@@ -5,7 +5,7 @@ from user.OpenID import OpenId
 from mooc.settings import DEBUG
 
 try:
-    from .session import show_sessions, show_request
+    from .display_session import show_sessions, show_request
 except ModuleNotFoundError:
     pass
 
@@ -35,6 +35,6 @@ class UserMiddleware:
             # utilisateur anonyme : session expire après 1h :
             request.session.set_expiry(3600)
 
-        show_sessions()
+        # show_sessions()
         show_request(request)
         return response
