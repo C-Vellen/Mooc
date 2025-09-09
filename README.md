@@ -6,22 +6,6 @@
 - auteur : Christophe Vellen
   
 
-## &#128273; Codes pour la version locale développement :
-- login de l'administrateur :
-```bash
-    {username: moocadmin, password:0000}
-```
-- BD postgres v17.2:
-```bash
-    {
-        owner : moocadmin,
-        password :    0000,
-        database : moocdb,
-        port: 5434,
-    }
-```
-
-
 ## &#128736; Installation : 
 
 - installer pyenv, poetry et python3 v3.12 :

@@ -15,6 +15,7 @@ from home.context import usercontext
 from user.views import is_author, is_gestionnaire
 from user.models import Restriction
 from progress.models import TutoProgress, PageProgress
+from progress.session import progress_init, TutoSession
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
 from .update_data import foreignKeyFields, create_data, update_data
@@ -46,33 +47,26 @@ def tutocontext(request):
 
     context = usercontext(request)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
-    tuto_list = (
-        Tutorial.objects.filter(
-            Q(published=True)
-            # & (Q(restriction__in=request.user.restriction.all()) | Q(restriction=None))
-        )
-        .order_by("-updated_at")
-        .distinct()
-    )
-    for tuto in tuto_list:
-        tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
-        if created:
-            tp.set_all_pageprogress()
-
-    context.update(
-        {
-            "titre_tous": "Tous les tutoriels",
-            "tutos": tuto_list,
-            "tp_list": [],
-            "categories": Category.objects.all().order_by("position"),
-            "restrictions": Restriction.objects.all().order_by("name"),
-            "tuto_form": False,
-            "tuto_header": "read",
-            "read": True,
-        }
-    )
 
     if request.user.is_authenticated:
+        tuto_list = (
+            Tutorial.objects.filter(
+                Q(published=True)
+                & (
+                    Q(restriction__in=request.user.restriction.all())
+                    | Q(restriction=None)
+                )
+            )
+            .order_by("-updated_at")
+            .distinct()
+        )
+        for tuto in tuto_list:
+            tp, created = TutoProgress.objects.get_or_create(
+                user=request.user, tuto=tuto
+            )
+            if created:
+                tp.set_all_pageprogress()
+
         context.update(
             {
                 "tp_list": request.user.tutoprogress.filter(
@@ -80,8 +74,32 @@ def tutocontext(request):
                 ).order_by("-tuto__updated_at")
             }
         )
-    else:
-        context.update({"tp_list": []})
+
+    elif request.user.is_anonymous:
+        tuto_list = (
+            Tutorial.objects.filter(Q(published=True) & Q(restriction=None))
+            .order_by("-updated_at")
+            .distinct()
+        )
+        try:
+            progress = request.session["progress"]
+        except KeyError:
+            request.session["progress"] = progress_init(tuto_list)
+            progress = request.session["progress"]
+
+        context.update({"tp_list": [TutoSession(tp) for tp in progress]})
+
+    context.update(
+        {
+            "titre_tous": "Tous les tutoriels",
+            "tutos": tuto_list,
+            "categories": Category.objects.all().order_by("position"),
+            "restrictions": Restriction.objects.all().order_by("name"),
+            "tuto_form": False,
+            "tuto_header": "read",
+            "read": True,
+        }
+    )
 
     return context
 
@@ -105,8 +123,12 @@ def listing_cat(request, cat_slug):
     """liste des vignettes des tutos publies d'une même catégorie"""
     context = tutocontext(request)
     category_select = get_object_or_404(Category, slug=cat_slug)
-    tuto_select = context["tutos"].filter(category=category_select)  # à supprimer
-    tp_list_select = context["tp_list"].filter(Q(tuto__category=category_select))
+    if request.user.is_authenticated:
+        tp_list_select = context["tp_list"].filter(Q(tuto__category=category_select))
+    else:
+        tp_list_select = [
+            tp for tp in context["tp_list"] if tp.tuto.category == category_select
+        ]
     context.update(
         {
             "titre_onglet": "tutos " + category_select.name,
@@ -172,25 +194,31 @@ def listing_search(request):
         context.update(
             {
                 "titre_page": "Tous les tutoriels :",
-                "tutos": context["tutos"],  # à supprimer
                 "tp_list": tp_list,
             }
         )
     else:
-        tutos_found = (
-            Tutorial.objects.filter(tutoprogress__in=tp_list)
-            .filter(
-                (Q(title__icontains=query) | Q(resume__icontains=query))
-                | Q(page__content__texte__icontains=query)
-            )
-            .distinct()
-        )
+        if request.user.is_authenticated:
+            queryset = Tutorial.objects.filter(tutoprogress__in=tp_list)
+        elif request.user.is_anonymous:
+            queryset = Tutorial.objects.filter(id__in=[tp.id for tp in tp_list])
+
+        tutos_found = queryset.filter(
+            (Q(title__icontains=query) | Q(resume__icontains=query))
+            | Q(page__content__texte__icontains=query)
+        ).distinct()
+
+        if request.user.is_authenticated:
+            tp_list_found = tp_list.filter(tuto__in=tutos_found)
+        elif request.user.is_anonymous:
+            tp_list_found = [tp for tp in tp_list if tp.tuto in tutos_found]
+
         context.update(
             {
                 "titre_page": 'Résultat pour la recherche "{}" : {} tutoriel{}.'.format(
                     query, len(tutos_found), "s" * (len(tutos_found) > 1)
                 ),
-                "tp_list": tp_list.filter(tuto__in=tutos_found),
+                "tp_list": tp_list_found,
             }
         )
 
@@ -202,18 +230,25 @@ def read_tuto(request, tuto_slug, page):
     """
     affichage de la page d'un tutoriel
     """
-    # informations sur le tuto et la page à afficher :
+
     page_number = int(page)
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
 
+    # VERIFICATION DE LA LISTE DES TUTOS AUTORISES :
     # le tuto ne peut être affiché que si :
     #       1- il est publie et (l'user fait partie de la liste de restriction d'accès, ou le tuto n'a aucune restriction)
     # ou :  2- son auteur fait la requête
     # ou :  3- un gestionnaire fait la requête
 
-    if (
-        tuto
-        in Tutorial.objects.filter(
+    if request.user.is_anonymous:
+        tuto_authorized_list = Tutorial.objects.filter(
+            Q(published=True) & Q(restriction=None)
+        )
+    elif request.user.is_gestionnaire:
+        tuto_authorized_list = Tutorial.objects.all()
+
+    elif request.user.is_authenticated:
+        tuto_authorized_list = Tutorial.objects.filter(
             (
                 Q(published=True)
                 & (
@@ -223,75 +258,97 @@ def read_tuto(request, tuto_slug, page):
             )
             | (Q(author=request.user))
         )
-    ) or (request.user.is_gestionnaire):
+
+    # CHARGEMENT DE LA PAGE A AFFICHER
+    if tuto in tuto_authorized_list:
         current_page = get_object_or_404(Page, tuto=tuto, page_number=page_number)
     else:
         raise Http404
 
+    # CHARGEMENT DE LA PROGRESSION DE USER (TutoProgess si user.is_auth, TutoSession si user.is_anonym)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
-    tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
-    if created:
-        tp.set_all_pageprogress()
-    current_pageprogress = PageProgress.objects.get(
-        user=request.user, page=current_page
-    )
+    if request.user.is_authenticated:
+        tutoprogress, created = TutoProgress.objects.get_or_create(
+            user=request.user, tuto=tuto
+        )
+        if created:
+            tutoprogress.set_all_pageprogress()
+        current_pageprogress = PageProgress.objects.get(
+            user=request.user, page=current_page
+        )
+    elif request.user.is_anonymous:
 
+        tutoprogress = TutoSession(
+            next(tp for tp in request.session["progress"] if tp["id"] == tuto.id)
+        )
+        current_pageprogress = next(
+            pp for pp in tutoprogress.get_all_pageprogress if pp.id == current_page.id
+        )
+
+    # SI POST (RETOUR FORMULAIRE QUIZ OU PAGE LUE)
     if request.method == "POST":
         if current_page.get_all_questions:
             # cas du quiz
             if "redo" in request.POST.keys():
                 # demande de recommencer le quiz
                 current_pageprogress.finished = False
-                current_pageprogress.correction = False
                 current_pageprogress.quiztry += 1
-
             else:
-                # validation du quiz
-                # enregistrement des réponses :
-                PageProgress.register_responses(current_pageprogress, request.POST)
+                # validation du quiz et enregistrement des réponses :
+                if request.user.is_authenticated:
+                    PageProgress.register_responses(current_pageprogress, request.POST)
                 current_pageprogress.finished = True
-                current_pageprogress.correction = False
-
-            current_pageprogress.save()
-
         else:
-            # si pas de quiz :
-            # validation page lue :
+            # si pas de quiz, validation page lue :
             current_pageprogress.finished ^= True
+
+        # enregistrement des réponses du quiz :
+        if request.user.is_authenticated:
             current_pageprogress.save()
+        elif request.user.is_anonymous:
+            # à faire :
+            current_pageprogress.update(request.POST, request.session["progress"])
+            request.session["progress"] = current_pageprogress.save(
+                request.session["progress"]
+            )
+            tutoprogress.update(request.session["progress"])
+            request.session["progress"] = tutoprogress.save(request.session["progress"])
 
-    PageProgress.set_all_propositionprogress(
-        current_pageprogress, clear="redo" in request.POST.keys()
-    )
+        # enregistrer ICI pageprogress dans request.session
 
+    # MISE A JOUR DU CONTEXT
     context = tutocontext(request)
-    if tuto in request.user.tutorial.all():
-        context.update(
-            {
-                "utilisateur": "auteur",
-                "titre_page": "Vous êtes " + tuto.get_tuto_status,
-            }
+
+    if request.user.is_authenticated:
+        PageProgress.set_all_propositionprogress(
+            current_pageprogress, clear="redo" in request.POST.keys()
         )
-    elif is_gestionnaire(request.user):
-        context.update(
-            {
-                "utilisateur": "gestionnaire",
-                "titre_page": "<nom de l'auteur>" + " est " + tuto.get_tuto_status,
-            }
-        )
-    else:
-        context.update(
-            {
-                "utilisateur": "adhérent",
-            }
-        )
+        if tuto in request.user.tutorial.all():
+            context.update(
+                {
+                    "utilisateur": "auteur",
+                    "titre_page": "Vous êtes " + tuto.get_tuto_status,
+                }
+            )
+        elif is_gestionnaire(request.user):
+            context.update(
+                {
+                    "utilisateur": "gestionnaire",
+                    "titre_page": "<nom de l'auteur>" + " est " + tuto.get_tuto_status,
+                }
+            )
+        else:
+            context.update({"utilisateur": "adhérent"})
+
+    elif request.user.is_anonymous:
+        context.update({"utilisateur": "invité"})
 
     context.update(
         {
             "titre_onglet": tuto.thumbnail,
+            "tp": tutoprogress,
             "tuto": tuto,
             "current_page": current_page,
-            "tp": tp,
             "current_pageprogress": current_pageprogress,
         }
     )

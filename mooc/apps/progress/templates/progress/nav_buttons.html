@@ -14,4 +14,8 @@
     <a class="action-button2 min-w-52" href="{% url 'progress:gestionnaire' %}">Espace Gestionnaire</a>
     {% endif %}
 
+    {% if connexion_link %}
+    <a class="action-button2 min-w-52" href="{% url 'user:connexion' %}">Connectez-vous !</a>
+    {% endif %}
+
 </div> 

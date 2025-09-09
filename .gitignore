@@ -6,7 +6,7 @@
 /mooc/mooc/settings/develop.py
 /mooc/mooc/settings/production.py
 /mooc/mooc/variables_environnement.py
-# /mooc/apps/user/session.py
+# /mooc/apps/user/display_session.py
 /mooc/htmlcov
 **/tests/tmp
 node_modules

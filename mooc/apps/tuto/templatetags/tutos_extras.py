@@ -44,7 +44,7 @@ def tuto_progression(tutoprogress):
             * tutoprogress.get_page_finished
             / tutoprogress.tuto.get_pages_total_number
         )
-    except ZeroDivisionError:
+    except (ZeroDivisionError, AttributeError):
         return "-"
 
 
