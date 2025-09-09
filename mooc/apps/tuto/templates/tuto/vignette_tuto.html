@@ -247,7 +247,7 @@
         </div>
 
         <div class="relative w-full mt-2 sm:mt-4 mx-4 flex flex-row justify-center items-center gap-2">
-            {% for pp in tp.set_all_pageprogress %}
+            {% for pp in tp.get_all_pageprogress %}
     
                 {% if pp.page.page_number <= tp.next_page  or tp.is_finished %}
                 <div class="page-index md:relative overflow-visible w-full flex flex-col justify-center">

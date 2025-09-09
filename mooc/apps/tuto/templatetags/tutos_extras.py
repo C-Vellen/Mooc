@@ -61,17 +61,11 @@ def page_notation(pageprogress):
 
 @register.filter
 def tuto_notation(tutoprogress):
-    # if tutoprogress.tuto_max_score_done > 0:
-    #     return "{} / {}".format(
-    #         tutoprogress.tuto_score, tutoprogress.tuto_max_score_done
-    #     )
-    # else:
-    #     return "-"
-    try:
+    if tutoprogress.tuto_max_score_done > 0:
         return "{} / {}".format(
             tutoprogress.tuto_score, tutoprogress.tuto_max_score_done
         )
-    except (ZeroDivisionError, AttributeError):
+    else:
         return "-"
 
 

@@ -15,7 +15,7 @@ from home.context import usercontext
 from user.views import is_author, is_gestionnaire
 from user.models import Restriction
 from progress.models import TutoProgress, PageProgress
-from progress.session import SessionProgress
+from progress.session import progress_init, TutoSession
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
 from .update_data import foreignKeyFields, create_data, update_data
@@ -77,33 +77,18 @@ def tutocontext(request):
 
     elif request.user.is_anonymous:
         tuto_list = (
-            Tutorial.objects.filter(Q(published=True))
+            Tutorial.objects.filter(Q(published=True) & Q(restriction=None))
             .order_by("-updated_at")
             .distinct()
         )
-
-        sessionprogress = SessionProgress(tuto_list)
-        print(">>>> tuto_list: ", tuto_list)
-        print(">>>> sessionprogress: ", sessionprogress)
         try:
-            # récupération de sessionprogress
-            sessionprogress.synchro(request.session["progress"])
+            progress = request.session["progress"]
         except KeyError:
-            # initialisation de sessionprogress
-            request.session["progress"] = sessionprogress.progress
+            request.session["progress"] = progress_init(tuto_list)
+            progress = request.session["progress"]
 
-        # test modification de sessionprogress :
-        sessionprogress.quiztry_inc(1, 1)
-        request.session["progress"] = sessionprogress.progress
+        context.update({"tp_list": [TutoSession(tp) for tp in progress]})
 
-        context.update(
-            {
-                "tp_list": [
-                    {"tuto": tuto, "next_page": sessionprogress.next_page(tuto.id)}
-                    for tuto in tuto_list
-                ],
-            }
-        )
     context.update(
         {
             "titre_tous": "Tous les tutoriels",
@@ -142,7 +127,7 @@ def listing_cat(request, cat_slug):
         tp_list_select = context["tp_list"].filter(Q(tuto__category=category_select))
     else:
         tp_list_select = [
-            tp for tp in context["tp_list"] if tp["tuto"].category == category_select
+            tp for tp in context["tp_list"] if tp.tuto.category == category_select
         ]
     context.update(
         {
@@ -215,8 +200,8 @@ def listing_search(request):
     else:
         if request.user.is_authenticated:
             queryset = Tutorial.objects.filter(tutoprogress__in=tp_list)
-        else:
-            queryset = Tutorial.objects.filter(id__in=[tp["tuto"].id for tp in tp_list])
+        elif request.user.is_anonymous:
+            queryset = Tutorial.objects.filter(id__in=[tp.id for tp in tp_list])
 
         tutos_found = queryset.filter(
             (Q(title__icontains=query) | Q(resume__icontains=query))
@@ -225,8 +210,8 @@ def listing_search(request):
 
         if request.user.is_authenticated:
             tp_list_found = tp_list.filter(tuto__in=tutos_found)
-        else:
-            tp_list_found = [tp for tp in tp_list if tp["tuto"] in tutos_found]
+        elif request.user.is_anonymous:
+            tp_list_found = [tp for tp in tp_list if tp.tuto in tutos_found]
 
         context.update(
             {
@@ -245,10 +230,11 @@ def read_tuto(request, tuto_slug, page):
     """
     affichage de la page d'un tutoriel
     """
-    # informations sur le tuto et la page à afficher :
+
     page_number = int(page)
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
 
+    # VERIFICATION DE LA LISTE DES TUTOS AUTORISES :
     # le tuto ne peut être affiché que si :
     #       1- il est publie et (l'user fait partie de la liste de restriction d'accès, ou le tuto n'a aucune restriction)
     # ou :  2- son auteur fait la requête
@@ -273,57 +259,70 @@ def read_tuto(request, tuto_slug, page):
             | (Q(author=request.user))
         )
 
+    # CHARGEMENT DE LA PAGE A AFFICHER
     if tuto in tuto_authorized_list:
         current_page = get_object_or_404(Page, tuto=tuto, page_number=page_number)
     else:
         raise Http404
 
+    # CHARGEMENT DE LA PROGRESSION DE USER (TutoProgess si user.is_auth, TutoSession si user.is_anonym)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
     if request.user.is_authenticated:
-        tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
+        tutoprogress, created = TutoProgress.objects.get_or_create(
+            user=request.user, tuto=tuto
+        )
         if created:
-            tp.set_all_pageprogress()
+            tutoprogress.set_all_pageprogress()
         current_pageprogress = PageProgress.objects.get(
             user=request.user, page=current_page
         )
     elif request.user.is_anonymous:
 
-        # il faudrait ajouter ici un try/except ou un test si KeyError sur "progress" ou tuto.id
+        tutoprogress = TutoSession(
+            next(tp for tp in request.session["progress"] if tp["id"] == tuto.id)
+        )
+        current_pageprogress = next(
+            pp for pp in tutoprogress.get_all_pageprogress if pp.id == current_page.id
+        )
 
-        current_pageprogress = request.session["progress"][f"{tuto.id}"][
-            f"{current_page.id}"
-        ]
-
+    # SI POST (RETOUR FORMULAIRE QUIZ OU PAGE LUE)
     if request.method == "POST":
         if current_page.get_all_questions:
             # cas du quiz
             if "redo" in request.POST.keys():
                 # demande de recommencer le quiz
                 current_pageprogress.finished = False
-                current_pageprogress.correction = False
                 current_pageprogress.quiztry += 1
-
             else:
-                # validation du quiz
-                # enregistrement des réponses :
-                PageProgress.register_responses(current_pageprogress, request.POST)
+                # validation du quiz et enregistrement des réponses :
+                if request.user.is_authenticated:
+                    PageProgress.register_responses(current_pageprogress, request.POST)
                 current_pageprogress.finished = True
-                current_pageprogress.correction = False
-
-            current_pageprogress.save()
-
         else:
-            # si pas de quiz :
-            # validation page lue :
+            # si pas de quiz, validation page lue :
             current_pageprogress.finished ^= True
-            current_pageprogress.save()
 
+        # enregistrement des réponses du quiz :
+        if request.user.is_authenticated:
+            current_pageprogress.save()
+        elif request.user.is_anonymous:
+            # à faire :
+            current_pageprogress.update(request.POST, request.session["progress"])
+            request.session["progress"] = current_pageprogress.save(
+                request.session["progress"]
+            )
+            tutoprogress.update(request.session["progress"])
+            request.session["progress"] = tutoprogress.save(request.session["progress"])
+
+        # enregistrer ICI pageprogress dans request.session
+
+    # MISE A JOUR DU CONTEXT
     context = tutocontext(request)
+
     if request.user.is_authenticated:
         PageProgress.set_all_propositionprogress(
             current_pageprogress, clear="redo" in request.POST.keys()
         )
-
         if tuto in request.user.tutorial.all():
             context.update(
                 {
@@ -339,21 +338,15 @@ def read_tuto(request, tuto_slug, page):
                 }
             )
         else:
-            context.update(
-                {
-                    "utilisateur": "adhérent",
-                }
-            )
+            context.update({"utilisateur": "adhérent"})
+
     elif request.user.is_anonymous:
-        context.update(
-            {
-                "utilisateur": "invité",
-            }
-        )
+        context.update({"utilisateur": "invité"})
 
     context.update(
         {
             "titre_onglet": tuto.thumbnail,
+            "tp": tutoprogress,
             "tuto": tuto,
             "current_page": current_page,
             "current_pageprogress": current_pageprogress,

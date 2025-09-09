@@ -36,5 +36,5 @@ class UserMiddleware:
             request.session.set_expiry(3600)
 
         # show_sessions()
-        show_request(request)
+        # show_request(request)
         return response

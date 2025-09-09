@@ -46,3 +46,26 @@ def show_request(request: dict):
         print("\tSESSION EXPIREE: IMPOSSIBLE DE RECUPERER LA SESSION")
 
     print("*********************************")
+
+
+def show_progress(request: dict):
+    """Affiche le dictionnaire de la session en cours"""
+    print("\n******** REQUEST : *************")
+
+    if request.session:
+        print("=> request.session['progress'] :")
+        try:
+            s = request.session["progress"][0]
+            print(f"tp.is_in_progress: {s["is_in_progress"]}")
+            print(f"tp.is_finished: {s["is_finished"]}")
+            print(f"tp.call_to_read: {s["call_to_read"]}")
+            print(f"tp.next_page: {s["next_page"]}")
+            print(f"pp.id: {s["get_all_pageprogress"][0]["id"]}")
+            print(f"pp.finished: {s["get_all_pageprogress"][0]["finished"]}")
+        except KeyError:
+            print('request.session["progress"] pas initialisé')
+
+    else:
+        print("No session")
+
+    print("*********************************\n")

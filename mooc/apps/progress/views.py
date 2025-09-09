@@ -2,14 +2,44 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 
 from home.context import usercontext
+from tuto.views import tutocontext
 from user.views import is_author, is_gestionnaire
 from tuto.models import TutoBase, Tutorial, Category
 from tuto.update_data import update_data
+from .session import TutoSession
 from .models import TutoProgress
 
 
 def compte(request):
-    context = usercontext(request)
+    """page du compte"""
+    if request.user.is_authenticated:
+        context = usercontext(request)
+        context.update(
+            {
+                "tp_list": request.user.tutoprogress.filter(tuto__published=True),
+                "author_link": request.user.is_author,
+                "gestionnaire_link": request.user.is_gestionnaire,
+                "titre_compte": f"Compte personnel de {request.user.first_name} {request.user.last_name}",
+                "connexion_link": False,
+            }
+        )
+    elif request.user.is_anonymous:
+        context = tutocontext(request)
+        tp_list = [TutoSession(tp) for tp in request.session["progress"]]
+        context.update(
+            {
+                "tp_list": [
+                    tutoprogress
+                    for tutoprogress in tp_list
+                    if tutoprogress.tuto.published
+                ],
+                "author_link": False,
+                "gestionnaire_link": False,
+                "titre_compte": "Compte invité",
+                "connexion_link": True,
+            }
+        )
+
     context.update(
         {
             "titre_onglet": "Mon compte",
@@ -17,33 +47,7 @@ def compte(request):
             "tuto_header": "progress",
         }
     )
-    if request.user.is_authenticated:
-        print("---> user is authenticated")
-        context.update(
-            {
-                "tp_list": request.user.tutoprogress.all(),
-                "author_link": request.user.is_author,
-                "gestionnaire_link": request.user.is_gestionnaire,
-                "connexion_link": False,
-            }
-        )
-    else:
-        print("---> user is NOT authenticated")
-        tuto_list = (
-            Tutorial.objects.filter(published=True).order_by("-updated_at").distinct()
-        )
-        context.update(
-            {
-                "tp_list": [{"tuto": tuto} for tuto in tuto_list],
-                "author_link": False,
-                "gestionnaire_link": False,
-                "connexion_link": True,
-            }
-        )
-
     return render(request, "progress/compte.html", context)
-
-    # return redirect("user:connexion")
 
 
 @login_required

@@ -2,263 +2,260 @@
 from tuto.models import Tutorial, Page, Question, Proposition
 
 
-###################################################################
-class SessionProgress:
-
-    def __init__(self, tuto_list):
-        self.progress = {
-            tuto.id: {
-                page.id: {
+def progress_init(tuto_list):
+    """initialise le dictionnaire json request.session["progress"] qui enregistre la progression de l'user naonyme"""
+    return [
+        {
+            "id": tuto.id,
+            "is_in_progress": True,
+            "is_finished": False,
+            "call_to_read": "Démarrer",
+            "get_page_finished": 0,
+            "next_page": 1,
+            "tuto_score": 0,
+            "tuto_max_score": 0,
+            "tuto_max_score_done": 0,
+            "get_all_pageprogress": [
+                {
+                    "id": page.id,
                     "finished": False,
-                    "correction": False,
-                    "quiztry": 0,
-                    "questions": {
-                        question.id: {
-                            prop.id: 0 for prop in question.get_all_propositions
+                    "quiztry": 1,
+                    "page_score": 0,
+                    "page_max_score": 0,
+                    "deactivated": False,
+                    "get_all_questionprogress": [
+                        {
+                            "id": question.id,
+                            "question_score": 0,
+                            "get_all_propositionprogress": [
+                                {
+                                    "id": proposition.id,
+                                    "user_answer": False,
+                                    "result": False,
+                                }
+                                for proposition in question.get_all_propositions
+                            ],
                         }
                         for question in page.get_all_questions
-                    },
+                    ],
                 }
                 for page in tuto.get_all_pages
-            }
-            for tuto in tuto_list
+            ],
         }
+        for tuto in tuto_list
+    ]
 
-    def synchro(self, session):
-        """synchronise sessionprogress avec request.session["progress"]"""
-        self.progress = session
 
-    def quiztry_inc(self, tuto, page):
-        try:
-            self.progress[f"{tuto}"][f"{page}"]["quiztry"] += 1
-        except KeyError:
-            pass
+class TutoSession:
 
-    def is_finished(self, tuto):
-        """tuto terminé"""
-        return all(
-            self.progress[f"{tuto}"][f"{page}"]["finished"]
-            for page in self.progress[f"{tuto}"].keys()
+    def __init__(self, tutoprogress):
+        self.id = tutoprogress["id"]
+        self.tuto = Tutorial.objects.get(id=tutoprogress["id"])
+        self.is_in_progress = tutoprogress["is_in_progress"]
+        self.is_finished = tutoprogress["is_finished"]
+        self.call_to_read = tutoprogress["call_to_read"]
+        self.get_page_finished = tutoprogress["get_page_finished"]
+        self.next_page = tutoprogress["next_page"]
+        self.tuto_score = tutoprogress["tuto_score"]
+        self.tuto_max_score = tutoprogress["tuto_max_score"]
+        self.tuto_max_score_done = tutoprogress["tuto_max_score_done"]
+        self.get_all_pageprogress = [
+            PageSession(pp) for pp in tutoprogress["get_all_pageprogress"]
+        ]
+
+    def set_all_pageprogress(self, progress):
+        """liste des pageprogress du tutoprogress"""
+        tutoprogress = next(tp for tp in progress if tp["id"] == self.id)
+        self.get_all_pageprogress = [
+            PageSession(pp) for pp in tutoprogress["get_all_pageprogress"]
+        ]
+
+    def update(self, progress):
+        """mettre à jour tutoprogress en fonction de pageprogress (et les réponses aux quiz)"""
+        self.set_all_pageprogress(progress)
+        self.is_finished = all(pp.finished for pp in self.get_all_pageprogress)
+        self.is_in_progress = (
+            any(pp.finished for pp in self.get_all_pageprogress)
+            and not self.is_finished
+        )
+        self.call_to_read = (
+            "Reprendre"
+            if self.is_in_progress
+            else ("Recommencer" if self.is_finished else "Démarrer")
         )
 
-    def next_page(self, tuto):
-        """prochaine page à afficher (page 1 si toutes las pages sont terminées)"""
-        if self.is_finished(tuto):
-            return 1
+        self.get_page_finished = len(
+            [pp.finished for pp in self.get_all_pageprogress if pp.finished]
+        )
+
+        self.next_page = next(
+            (
+                pp.page.page_number
+                for pp in sorted(
+                    self.get_all_pageprogress,
+                    key=lambda p: p.page.page_number,
+                )
+                if not pp.finished
+            ),
+            1,
+        )
+
+        self.tuto_score = sum(
+            [pp.page_score for pp in self.get_all_pageprogress if pp.page_score]
+        )
+        self.tuto_max_score = sum(
+            [pp.page_max_score for pp in self.get_all_pageprogress]
+        )
+        self.tuto_max_score_done = sum(
+            [pp.page_max_score for pp in self.get_all_pageprogress if pp.finished]
+        )
+
+    def save(self, progress):
+        tutoprogress = next(tp for tp in progress if tp["id"] == self.id)
+        tutoprogress["is_in_progress"] = self.is_in_progress
+        tutoprogress["is_finished"] = self.is_finished
+        tutoprogress["call_to_read"] = self.call_to_read
+        tutoprogress["get_page_finished"] = self.get_page_finished
+        tutoprogress["next_page"] = self.next_page
+        tutoprogress["tuto_score"] = self.tuto_score
+        tutoprogress["tuto_max_score"] = self.tuto_max_score
+        tutoprogress["tuto_max_score_done"] = self.tuto_max_score_done
+        return progress
+
+
+class PageSession:
+
+    def __init__(self, pageprogress):
+        self.id = pageprogress["id"]
+        self.page = Page.objects.get(id=pageprogress["id"])
+        self.finished = pageprogress["finished"]
+        self.quiztry = pageprogress["quiztry"]
+        self.page_score = pageprogress["page_score"]
+        self.page_max_score = len(self.page.get_all_questions)
+        self.deactivated = pageprogress["deactivated"]
+        self.get_all_questionprogress = [
+            QuestionSession(qp) for qp in pageprogress["get_all_questionprogress"]
+        ]
+
+    def set_all_questionprogress(self, progress):
+        """liste des questionprogress du pageprogress"""
+        pageprogress = self.get_pageprogress(progress)
+        self.get_all_questionprogress = [
+            QuestionSession(qp) for qp in pageprogress["get_all_questionprogress"]
+        ]
+
+    def update(self, response, progress):
+        """met à jour current_pageprogress en fonction des réponses (quiz...)"""
+        self.set_all_questionprogress(progress)
+        for q in self.get_all_questionprogress:
+            q.update(response, progress)
+            progress = q.save(progress)
+        self.deactivated = self.finished or self.page.tuto.archived
+        if self.finished:
+            self.page_score = sum(
+                [q.question_score for q in self.get_all_questionprogress]
+            )
         else:
-            for page in self.progress[f"{tuto}"].keys():
-                if not self.progress[f"{tuto}"][f"{page}"]["finished"]:
-                    return Page.objects.get(id=page).page_number
-            return Tutorial.ojects.get(id=tuto).get_pages_total_number
+            self.page_score = 0
 
-    def __str__(self):
-        return ">" + " | ".join([str(k) for k in self.progress.keys()])
+    def save(self, progress):
+        """enregistrement de la page dans request.session"""
+        pageprogress = self.get_pageprogress(progress)
+        pageprogress["finished"] = self.finished
+        pageprogress["quiztry"] = self.quiztry
+        pageprogress["page_score"] = self.page_score
+        pageprogress["deactivated"] = self.deactivated
+        return progress
 
-
-#######################################################################"
-# class TutoProgressSession:
-#     """Progression dans la session de user dans les tutoriels"""
-
-#     def __init__(self, tuto):
-#         self.id = tuto.id
-#         self.tuto = tuto
-
-#     @property
-#     def is_in_progress(self):
-#         """tuto en cours (démarré mais pas terminé)"""
-#         return (
-#             any(pp.finished for pp in self.set_all_pageprogress())
-#             and not self.is_finished
-#         )
-
-#     @property
-#     def is_finished(self):
-#         """tuto terminé"""
-#         return all(pp.finished for pp in self.set_all_pageprogress())
-
-#     @property
-#     def call_to_read(self):
-#         """Message qui s'affiche sur le bouton de lecture du tuto"""
-#         if self.is_in_progress:
-#             return "Reprendre"
-#         elif self.is_finished:
-#             return "Recommencer"
-#         else:
-#             return "Démarrer"
-
-#     @property
-#     def get_page_finished(self):
-#         """Nombre de pages terminées (pour la progression)"""
-#         return len([pp.finished for pp in self.set_all_pageprogress() if pp.finished])
-
-#     @property
-#     def next_page(self):
-#         """prochaine page à afficher (page 1 si toutes las pages sont terminées)"""
-#         if self.is_finished:
-#             return 1
-#         else:
-#             for pp in self.set_all_pageprogress():
-#                 if not pp.finished:
-#                     return pp.page.page_number
-#             return self.tuto.get_pages_total_number
-
-#     @property
-#     def tuto_score(self):
-#         """Note globale obtenue aux quiz du tuto"""
-#         return sum(
-#             [pp.page_score for pp in self.set_all_pageprogress() if pp.page_score]
-#         )
-
-#     @property
-#     def tuto_max_score_done(self):
-#         """Score intermédiaire max sur le questions du quiz qui ont été validées"""
-#         return sum(
-#             [pp.page_max_score for pp in self.set_all_pageprogress() if pp.finished]
-#         )
-
-#     @property
-#     def tuto_max_score(self):
-#         """Score max que l'on peut obtenir en répondant juste à toutes les questions d'un tuto"""
-#         return sum([pp.page_max_score for pp in self.set_all_pageprogress()])
-
-#     def set_all_pageprogress(self):
-#         """
-#         liste des pages progress associées à l'user et au tuto
-#         ou les créé si n'existent pas
-#         """
-
-#         def order_page(p):
-#             return p.page_number
-
-#         return [PageProgressSession(page) for page in self.tuto.get_all_pages].sort(
-#             key=order_page
-#         )
-
-#     def __str__(self):
-#         return f"session | {self.tuto.slug}"
+    def get_pageprogress(self, progress):
+        """extrait de request.session la pageprogress"""
+        tutoprogress = next(tp for tp in progress if tp["id"] == self.page.tuto.id)
+        return next(
+            pp for pp in tutoprogress["get_all_pageprogress"] if pp["id"] == self.id
+        )
 
 
-# class PageProgressSession:
-#     """Progression dans la session de user dans les pages"""
+class QuestionSession:
 
-#     def __init__(self, page):
-#         self.id = page.id
-#         self.page = page
-#         # Si pas de quiz : la page est déclarée lue. Si quiz : les réponses ont été soumises.
-#         finished = False
-#         # Affichage du corrigé du quiz
-#         correction = False
-#         # nombre de tentatives au quiz :
-#         quiztry = 1
+    def __init__(self, questionprogress):
+        self.id = questionprogress["id"]
+        self.question = Question.objects.get(id=questionprogress["id"])
+        self.question_score = questionprogress["question_score"]
+        self.get_all_propositionprogress = [
+            PropositionSession(propositionprogress)
+            for propositionprogress in questionprogress["get_all_propositionprogress"]
+        ]
 
-#     @property
-#     def page_score(
-#         self,
-#     ):  # ! cas de qp pas encre créé : liste de vide ! mettre 0 par défaut !
-#         """Score obtenu au quiz de la page (toutes les checkbox doivent être OK sinon c'est 0)"""
-#         if self.finished:
-#             return sum([q.question_score for q in self.get_all_questionprogress])
-#         # return None
-#         return 0
+    def set_all_propositionprogress(self, progress):
+        questionprogress = self.get_questionprogress(progress)
+        self.get_all_propositionprogress = [
+            PropositionSession(propositionprogress)
+            for propositionprogress in questionprogress["get_all_propositionprogress"]
+        ]
 
-#     @property
-#     def page_max_score(self):
-#         """Score max que l'on peut obtenir en répondant juste à toutes les questions d'une page"""
-#         return len(self.page.get_all_questions)
+    def update(self, response, progress):
+        """met à jour questionprogress en fonction des réponses (quiz...)"""
+        self.set_all_propositionprogress(progress)
+        for prop in self.get_all_propositionprogress:
+            prop.update(response, progress)
+            progress = prop.save(progress)
 
-#     @property
-#     def get_all_questionprogress(self):
-#         """
-#         liste des questions progress associées à l'user et à la page
-#         ou les crée si n'existent pas
-#         """
+        self.question_score = 1 * all(
+            prop.result for prop in self.get_all_propositionprogress
+        )
 
-#         def order_questions(q):
-#             return q.position
+    def save(self, progress):
+        """enregistrement de la question dans request.session"""
+        questionprogress = self.get_questionprogress(progress)
+        questionprogress["question_score"] = self.question_score
+        return progress
 
-#         return [
-#             QuestionProgressSession(question)
-#             for question in Question.objects.filter(page=self.page)
-#         ].sort(key=order_questions)
-
-#     @property
-#     def deactivated(self):
-#         """
-#         quiz de la page désactivé si l'utilisateur a terminé le quiz ou si le tuto est archivé
-#         """
-#         return self.finished or self.page.tuto.archived
-
-#     def set_all_propositionprogress(self, clear):
-#         """récupération, initialisation ou réinitialisation des propositions-progress de la page"""
-#         for prop in Proposition.objects.filter(question__page=self.page):
-#             p, created = PropositionProgress.objects.get_or_create(
-#                 user=self.user,
-#                 proposition=prop,
-#             )
-#             if created or clear:
-#                 p.user_answer = False
-#                 p.save()
-
-#     def register_responses(self, response):
-#         """enregistre le dictionnaire des réponses dans les modèles PropositionProgress."""
-#         for prop in Proposition.objects.filter(question__page=self.page):
-#             p = PropositionProgress.objects.get(
-#                 user=self.user,
-#                 proposition=prop,
-#             )
-#             p.user_answer = str(prop.id) in response.keys()
-#             p.save()
-
-#     def __str__(self):
-#         return f"{self.user.username} | {self.page.tuto.slug}-page{self.page}"
+    def get_questionprogress(self, progress):
+        """extrait de request.session la questionprogress"""
+        page = self.question.page
+        tuto = page.tuto
+        tutoprogress = next(tp for tp in progress if tp["id"] == tuto.id)
+        pageprogress = next(
+            pp for pp in tutoprogress["get_all_pageprogress"] if pp["id"] == page.id
+        )
+        return next(
+            qp for qp in pageprogress["get_all_questionprogress"] if qp["id"] == self.id
+        )
 
 
-# class QuestionProgressSession:
-#     """Progression de user dans les quiz"""
+class PropositionSession:
 
-#     user = models.ForeignKey("user.User", on_delete=models.CASCADE)
-#     question = models.ForeignKey("tuto.Question", on_delete=models.CASCADE)
+    def __init__(self, propositionprogress):
+        self.id = propositionprogress["id"]
+        self.proposition = Proposition.objects.get(id=propositionprogress["id"])
+        self.user_answer = propositionprogress["user_answer"]
+        # en propriété :
+        self.result = propositionprogress["result"]
 
-#     class Meta:
-#         verbose_name = "progression par question"
+    def update(self, response, progress):
+        """met à jour propositionprogress en fonction des réponses (quiz...)"""
+        self.user_answer = str(self.id) in response.keys()
+        self.result = self.user_answer == self.proposition.good_answer
 
-#     @property
-#     def question_score(self):
-#         """Note obtenue à la question (1 pt si toutes les checkbox sont OK sinon c'est 0pt)"""
-#         props = PropositionProgress.objects.filter(
-#             user=self.user, proposition__question=self.question
-#         )
-#         if props:
-#             return 1 * all(prop.result for prop in props)
-#         return 0
-
-#     @property
-#     def get_all_propositionprogress(self):
-#         """liste des proposition progress associées à l'user et à la question"""
-#         return PropositionProgress.objects.filter(
-#             user=self.user,
-#             proposition__question=self.question,
-#         ).order_by("proposition__position")
-
-#     def __str__(self):
-#         return f"{self.user.username} | {self.question.page.tuto.slug}-page{self.question.page}-{self.question.id}"
-
-
-# class PropositionProgress(models.Model):
-#     """Enregistrement des propositions de user"""
-
-#     user = models.ForeignKey("user.User", on_delete=models.CASCADE)
-#     proposition = models.ForeignKey("tuto.Proposition", on_delete=models.CASCADE)
-#     # enregistrement de la réponse de user (case cochée ou pas) :
-#     user_answer = models.BooleanField(default=False)
-
-#     class Meta:
-#         verbose_name = "enregistrement des propositions"
-
-#     @property
-#     def result(self):
-#         """Résultat de la coche checkbox (bon ou mauvais)"""
-#         return self.user_answer == self.proposition.good_answer
-
-#     def __str__(self):
-#         return f"{self.user.username} | {self.proposition.question.page.tuto.slug}-{self.proposition.id}"
+    def save(self, progress):
+        """enregistrement de la proposition dans request.session"""
+        question = self.proposition.question
+        page = question.page
+        tuto = page.tuto
+        tutoprogress = next(tp for tp in progress if tp["id"] == tuto.id)
+        pageprogress = next(
+            pp for pp in tutoprogress["get_all_pageprogress"] if pp["id"] == page.id
+        )
+        questionprogress = next(
+            qp
+            for qp in pageprogress["get_all_questionprogress"]
+            if qp["id"] == question.id
+        )
+        propositionprogress = next(
+            pp
+            for pp in questionprogress["get_all_propositionprogress"]
+            if pp["id"] == self.id
+        )
+        propositionprogress["user_answer"] = self.user_answer
+        propositionprogress["result"] = self.result
+        return progress
