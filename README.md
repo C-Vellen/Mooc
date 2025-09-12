@@ -19,21 +19,43 @@
 ```bash
     git clone https://github.com/C-Vellen/Mooc.git
 ```
+- créer une base de donnée Mysql ou Postgresql
 
 - installer les dépendances, définies dans le fichier **pyproject.toml** :
 ```bash
     git clone https://github.com/C-Vellen/Mooc.git
 ```
-
-- en production, créer et paramétrer /mooc/mooc/settings/production.py :
+- en développement, créer et paramétrer /mooc/mooc/settings/develop.py, ou bien définir des variables d'environnement :
+    ```bash 
+        SECRET_KEY = 'xxxxxxxxxxxxxxxxxxxx'
+        DEBUG = True
+        ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+        CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://localhost:8000"]
+        PROTOCOL = "http"
+        SITE_ID = 1
+        DATABASES = {
+            'default':  {
+                'ENGINE': 'django.db.backends.postgresql' ou 'django.db.backends.mysql,
+                'NAME': 'xxxxxxxxxxxx',
+                'USER': 'xxxxxxxxxxxx',
+                'PASSWORD': 'xxxxxxxxxxxxx',
+                'HOST': '127.0.0.1',
+                'PORT': xxxx,
+            }
+        }
+        
+    ``` 
+- en production, créer et paramétrer /mooc/mooc/settings/production.py ou bien définir des variables d'environnement,:
     ```bash 
         SECRET_KEY = 'xxxxxxxxxxxxxxxxxxxx'
         DEBUG = False
         ALLOWED_HOSTS = ['www.xxxxx.xx', ... ]
+        CSRF_TRUSTED_ORIGINS = ['https://www.xxxxx.xx', ... ]
+        PROTOCOL = 'https'
         SITE_ID = 1
         DATABASES = {
             'default':  {
-                'ENGINE': 'django.db.backends.postgresql',
+                'ENGINE': 'django.db.backends.postgresql' ou 'django.db.backends.mysql,
                 'NAME': 'xxxxxxxxxxxx',
                 'USER': 'xxxxxxxxxxxx',
                 'PASSWORD': 'xxxxxxxxxxxxx',
@@ -43,7 +65,6 @@
         }
         STATIC_ROOT = 'chemin vers fichiers statiques sur le serveur'
         MEDIA_ROOT =  'chemin vers fichiers media sur le serveur'
-        PROTOCOL = 'https'
     ``` 
 
 - activer l'environnement virtuel:
@@ -68,6 +89,10 @@
     ```bash
         ./mooc/manage.py createsuperuser
     ```
+    - lancer le serveur (voir ci-dessous), se connecter en tant qu'administrateur et aller sur l'administration django
+        - modifier le user : entrer subId (random), nom, prénom, group (auteur, gestionnaire, admin)        
+        - compléter les champs image et fichier dans home libellés et home/defaultcontent
+        - entrer une première catégorie (dans l'admin ou dans l'interface gestionnaire)
 
 ## &#128640; Lancement du serveur de développement :
 - option 1 : en ligne de commande

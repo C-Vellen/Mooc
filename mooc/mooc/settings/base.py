@@ -23,7 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "XXXXXXXXXXXXXXXXXXXXXX")
 DEBUG = os.environ.get("DEBUG", "false") == "true"
+ALLOWED_HOSTS = [os.environ.get("ALLOWED_HOSTS", "www.xxxxx.xx")]
 CSRF_TRUSTED_ORIGINS = [os.environ.get("CSRF_TRUSTED_ORIGINS", "www.xxxxx.xx")]
+PROTOCOL = [os.environ.get("PROTOCOL", "www.xxxxx.xx")]
 
 
 APPS_DIR = os.path.join(BASE_DIR, "apps")
@@ -85,12 +87,12 @@ WSGI_APPLICATION = "mooc.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("POSTGRES_DB", "table"),
-        "USER": os.environ.get("POSTGRES_USER", "postgres"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "passwd"),
-        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
-        "PORT": int(os.environ.get("POSTGRES_PORT", "5432")),
+        "ENGINE": os.environ.get("DB_ENG", "table"),
+        "NAME": os.environ.get("DB_NAME", "table"),
+        "USER": os.environ.get("DB_USER", "postgres"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "passwd"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": int(os.environ.get("DB_PORT", "5432")),
     }
 }
 
@@ -137,6 +139,7 @@ STATICFILES_DIRS = [
 
 # Configuration des media :
 MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 
 # Default primary key field type
