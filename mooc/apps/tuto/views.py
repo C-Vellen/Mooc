@@ -171,6 +171,7 @@ def listing_one(request, tuto_slug):
             "titre_page": "",
             "titre_vide": "Aucun tutoriel",
             "tp_list": [tp],
+            "tuto": tuto,
         }
     )
 
