@@ -6,7 +6,7 @@ from django.views.static import serve
 
 
 urlpatterns = [
-    re_path(r"^admin/", admin.site.urls),
+    re_path(r"^admin_Ypg9JSW4/", admin.site.urls),
     re_path(r"^tutoriels/", include("tuto.urls", namespace="tuto")),
     re_path(r"^user/", include("user.urls", namespace="user")),
     re_path(r"^progress/", include("progress.urls", namespace="progress")),
