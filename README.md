@@ -2,9 +2,72 @@
 
 ## &#128203; Généralités :
 - python3.12 / django 5.2 
-- pour base de donnée postgresql v17.2
+- base de donnée mysql ou postgresql
 - auteur : Christophe Vellen
-  
+
+##  &#8205;&#127891; Démonstration : [ici](https://www.mooc.ecosketch.fr)
+
+## &#129520; Fonctionnalités :
+### Fonctionnalités accessibles à tous les utilisateurs :
+- Présentation de la liste des tutoriels sous forme de liste :
+    - sélection par catégorie
+    - recherche de tutoriels contenant un mot ou une expression
+- Lecture d'un tutoriel :
+    - lecture par page du contenu
+    - quiz : formulaires à compléter, affichage/masquage des bonnes réponses
+    - passage à la page suivante si le quiz est terminé ou la page lue.
+- Suivi de l'avancement des tutoriels sur son compte :
+    - liste des tutoriels en cours ou terminés
+    - % d'avancement
+    - note obtenues aux quiz
+
+### Fonctionnalités accessibles aux auteurs :
+- Création et modification des tutoriels à travers l'interface spécifique :
+    - insertion de contenus : 
+        - titres, sous-titres, paragraphes, listes
+        - image (taille ajustable), video
+        - quiz : questions, propositions, correction
+        - modification de l'ordre des contenus par glisser-déposer
+    - visualisation du rendu en cours de rédaction
+- Affectation du nouveau tutoriel :
+        - par catégorie
+        - par restriction d'utilisation pour les utilisateurs
+- Modification du tutoriel avant validation pour publication
+- Possibilité de créer une nouvelle version d'un tutoriel déjà publié.
+
+### Fonctionnalités accessibles aux gestionnaires :
+- Création et modification des catégories de tutoriels
+- validation d'un tutoriel pour publication
+- archivage d'un tutoriel
+- dépublication d'un tutoriel
+- suppression d'un tutoriel
+
+### Fonctionnalités accessibles à travers l'administration :
+- Pour les utilisateurs :
+    - affectation par groupe (utilisateur, auteur, gestionnaire)
+    - restriction d'accès pour un utilisateur
+
+
+## &#129489;&#8205;&#127891; Les utilisateurs :
+
+- #### cas 1 : user anonyme, non authentifié : 
+    La session est temporaire. Le suivi de l'avancement est sauvegardé temporairement en session. Après une heure, ou à la déconnexion, la session expire et le suivi d'avancement est perdu.
+   
+- #### cas 2 : user authentifié :
+    Le suivi de l'avancement est sauvegardé en base de données et  en session.
+        
+## &#129489;&#8205;&#129309;&#8205;&#129489;  Les groupes utilisateurs :
+
+5 groupes :
+- "guest" : user anonyme, droits de lecture des tutoriels, résultats quizz enregistrés temporairement en session (pas en bd)
+- "utilisateur" : user authentifié, droits de lecture des tutoriels, résultats quizz enregistrés en session et en bd
+- "auteur" : user "utilisateur" + droit de créer, modifier des tutoriels
+- "gestionnaire": user "utilisateur" + droit de publier, archiver, supprimer des tutoriels
+- "admin": user "utilisateur" + accès à l'administration du site (= peut affecter un user dans un groupe)
+
+Group comprend "utilisateur", "auteur", gestionnaire", "admin".
+"guest" est affecté par défaut aux users anonymes
+"utilisateur" est affecté par défaut aux nouveaux users qui s'authentifient. 
 
 ## &#128736; Installation : 
 
@@ -21,10 +84,6 @@
 ```
 - créer une base de donnée Mysql ou Postgresql
 
-- installer les dépendances, définies dans le fichier **pyproject.toml** :
-```bash
-    git clone https://github.com/C-Vellen/Mooc.git
-```
 - en développement, créer et paramétrer /mooc/mooc/settings/develop.py, ou bien définir des variables d'environnement :
     ```bash 
         SECRET_KEY = 'xxxxxxxxxxxxxxxxxxxx'
@@ -67,32 +126,42 @@
         MEDIA_ROOT =  'chemin vers fichiers media sur le serveur'
     ``` 
 
+- installer les dépendances, définies dans le fichier **pyproject.toml** :
+    ```bash
+        poetry install
+    ```
+
 - activer l'environnement virtuel:
     sur console du serveur, à la racine du projet (dossier /Mooc/ ) :
     ```bash 
         source .venv/bin/activate
     ```
-    - migrations :
+    - première migration de la base de donnée :
     ```bash
         ./mooc/manage.py migrate
     ```
-    - adressage des fichiers statiques (en production) :
+    - création du superuser (administrateur):
+    ```bash
+        ./mooc/manage.py createsuperuser
+    ```
+    - création des groupes, catégories et pré-remplissage de la bd (valeurs par défaut):
+    ```bash
+        ./mooc/manage.py initgroups
+    ```
+    - initialisation tailwind :
+    ```bash
+        ./mooc/manage.py tailwind install
+        ./mooc/manage.py tailwind build
+    ```
+
+    - collecte des fichiers statiques (en production) :
     ```bash
         ./mooc/manage.py collectstatic
     ```
 
-    - création des groupes et pré-remplissage de la bd (valeurs par défaut):
-    ```bash
-        ./mooc/manage.py initgroups
-    ```
-     - création du superuser (administrateur):
-    ```bash
-        ./mooc/manage.py createsuperuser
-    ```
     - lancer le serveur (voir ci-dessous), se connecter en tant qu'administrateur et aller sur l'administration django
         - modifier le user : entrer subId (random), nom, prénom, group (auteur, gestionnaire, admin)        
-        - compléter les champs image et fichier dans home libellés et home/defaultcontent
-        - entrer une première catégorie (dans l'admin ou dans l'interface gestionnaire)
+        - compléter les champs image et fichier des tables home/libelles et home/defaultcontent
 
 ## &#128640; Lancement du serveur de développement :
 - option 1 : en ligne de commande
@@ -115,70 +184,3 @@
     remerciements : https://github.com/bevacqua/dragula
 
 
-## &#129489;&#8205;&#127891; Les utilisateurs :
-
-- #### user anonyme, non authentifié : 
-    pas de user, session temporaire expire après 1 heure. 
-    - objet user : aucun user enregistré
-    - objet request (enregistré par le browser):
-    ```bash 
-        request.user = AnonymousUser
-        request.session = {
-            "user": {
-                "subid": None,
-                "username": None,
-                "first_name": None,
-                "last_name": None,
-                "status": ["guest"],
-                "restriction": None,
-            },
-            "session_key": session.session_key,
-            "_session_expiry":3600,
-        }
-    ```
-
-    - objet session : enregistrée en bd, supprimée :
-        - si logout ou 
-        - si expirée dès qu'on appelle la vue user:connexion (clearsession)
-    ```bash
-        session -> session_key, data_key, expire_date
-    ```
-- #### user authentifié :
-    a rempli le formulaire de la vue de user:connexion, session temporaire de 1 jour.
-    - objet user : objet user créé ou récupéré dans la bd
-        
-    - objet request (enregistré par le browser):
-    ```bash 
-        request.user = user
-        request.session = {
-            "user": {
-                "subid": user.subId,
-                "username": user.username,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "status": ["utilisateur"],
-                "restriction": None,
-            },
-            "session_key": session.session_key,
-            "_session_expiry":86400,
-        }
-    ```
-
-    - objet session : enregistrée en bd, supprimée :
-        - si logout ou 
-        - si expirée dès qu'on appelle la vue user:connexion (clearsession)
-    ```bash
-        session -> session_key, data_key, expire_date
-    ```
-
-## &#129489;&#8205;&#129309;&#8205;&#129489;  Les groupes utilisateurs :
-5 groupes :
-- "guest" : user anonyme, droits de lecture des tutos, résultats quizz enregistrés en session (pas en bd)
-- "utilisateur" : user authentifié, droits de lecture des tutos, résultats quizz enregistrés en session et en bd
-- "auteur" : user "utilisateur" + droit d'écrire des tutos
-- "gestionnaire": user "utilisateur" + droit de publier, archiver, supprimer des tutos
-- "admin": user "utilisateur" + accès à l'administration du site (= peut affecter un user dans un groupe)
-
-En bd : Group comprend "utilisateur", "auteur", gestionnaire", "admin".
-"guest" est affecté par défaut aux users anonymes
-"utilisateur" est affecté par défaut aux nouveaux users qui s'authentifient.
