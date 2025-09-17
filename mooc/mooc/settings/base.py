@@ -47,8 +47,10 @@ INSTALLED_APPS = [
     "progress",
     "tailwind",
     "theme",
-    "django_browser_reload",
 ]
+
+if DEBUG:
+    INSTALLED_APPS += ["django_browser_reload"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -59,9 +61,11 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    "django_browser_reload.middleware.BrowserReloadMiddleware",
     "user.middleware.UserMiddleware",
 ]
+
+if DEBUG:
+    MIDDLEWARE += ["django_browser_reload.middleware.BrowserReloadMiddleware"]
 
 ROOT_URLCONF = "mooc.urls"
 
@@ -135,6 +139,7 @@ STATIC_URL = "/static/"
 # configuration fichiers statiques en développement :
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "theme/static"),
 ]
 
 # Configuration des media :
