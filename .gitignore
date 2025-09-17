@@ -14,3 +14,4 @@ developpement.env
 .env
 /mooc/theme/static/css/dist/*
 /get_and_set_permissions
+/tmp

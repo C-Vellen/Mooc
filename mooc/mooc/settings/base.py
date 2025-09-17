@@ -139,7 +139,7 @@ STATIC_URL = "/static/"
 # configuration fichiers statiques en développement :
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
-    os.path.join(BASE_DIR, "theme/static"),
+    # os.path.join(BASE_DIR, "theme/static"),
 ]
 
 # Configuration des media :
