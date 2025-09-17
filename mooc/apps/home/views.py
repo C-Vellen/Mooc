@@ -14,6 +14,14 @@ def index(request):
         }
     )
 
+    try:
+        from mooc.variables_environnement import env, djangoSettings
+
+        env()
+        djangoSettings()
+    except ModuleNotFoundError:
+        pass
+
     # test de modification de session :
     if request.user.is_authenticated:
         print(">>>>>>>>>>>> Authentifié ! <<<<<<<<<<<<<<")
