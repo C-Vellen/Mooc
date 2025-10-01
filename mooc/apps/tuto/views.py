@@ -18,7 +18,7 @@ from progress.models import TutoProgress, PageProgress
 from progress.session import progress_init, TutoSession
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
-from .update_data import foreignKeyFields, create_data, update_data
+from .update_data import foreignKeyFields, create_data, update_data, uniqueSlug
 
 
 # valeurs des boutons de redirection après création ou mise à jour tuto :
@@ -562,7 +562,8 @@ def duplicate_tuto(request, tuto_slug):
     # incrément de la version et modification du slug (qui doit rester unique)
     new_version = tuto.tutobase.get_last_version + 1
     tuto.version = new_version
-    tuto.slug = slugify(tuto.title) + "-" + str(new_version)
+    # tuto.slug = slugify(tuto.title) + "-" + str(new_version)
+    tuto.slug = uniqueSlug(tuto)
 
     # statut du tuto dupliqué : en cours de rédaction
     tuto.in_progress = True
