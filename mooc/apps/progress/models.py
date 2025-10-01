@@ -162,7 +162,7 @@ class PageProgress(models.Model):
             p.save()
 
     def __str__(self):
-        return f"{self.user.username} | {self.page.tuto.slug}-page{self.page}"
+        return f"{self.user.username} | {self.page.tuto.slug} | page-{self.page.page_number}"
 
 
 class QuestionProgress(models.Model):
@@ -193,7 +193,8 @@ class QuestionProgress(models.Model):
         ).order_by("proposition__position")
 
     def __str__(self):
-        return f"{self.user.username} | {self.question.page.tuto.slug}-page{self.question.page}-{self.question.id}"
+        return f"{self.user.username} | {self.question.page.tuto.slug} | page-{self.question.page.page_number} | question-{self.question.position}"
+        # return f"{self.user.username} | {self.question.page.tuto.slug}-page{self.question.page}-{self.question.id}"
 
 
 class PropositionProgress(models.Model):

@@ -18,7 +18,7 @@ from progress.models import TutoProgress, PageProgress
 from progress.session import progress_init, TutoSession
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
-from .update_data import foreignKeyFields, create_data, update_data
+from .update_data import foreignKeyFields, create_data, update_data, uniqueSlug
 
 
 # valeurs des boutons de redirection après création ou mise à jour tuto :
@@ -266,6 +266,9 @@ def read_tuto(request, tuto_slug, page):
     else:
         raise Http404
 
+    # MISE A JOUR DU CONTEXT
+    context = tutocontext(request)
+
     # CHARGEMENT DE LA PROGRESSION DE USER (TutoProgess si user.is_auth, TutoSession si user.is_anonym)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
     if request.user.is_authenticated:
@@ -316,9 +319,6 @@ def read_tuto(request, tuto_slug, page):
             request.session["progress"] = tutoprogress.save(request.session["progress"])
 
         # enregistrer ICI pageprogress dans request.session
-
-    # MISE A JOUR DU CONTEXT
-    context = tutocontext(request)
 
     if request.user.is_authenticated:
         PageProgress.set_all_propositionprogress(
@@ -562,7 +562,8 @@ def duplicate_tuto(request, tuto_slug):
     # incrément de la version et modification du slug (qui doit rester unique)
     new_version = tuto.tutobase.get_last_version + 1
     tuto.version = new_version
-    tuto.slug = slugify(tuto.title) + "-" + str(new_version)
+    # tuto.slug = slugify(tuto.title) + "-" + str(new_version)
+    tuto.slug = uniqueSlug(tuto)
 
     # statut du tuto dupliqué : en cours de rédaction
     tuto.in_progress = True
