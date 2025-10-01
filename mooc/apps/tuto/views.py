@@ -266,6 +266,9 @@ def read_tuto(request, tuto_slug, page):
     else:
         raise Http404
 
+    # MISE A JOUR DU CONTEXT
+    context = tutocontext(request)
+
     # CHARGEMENT DE LA PROGRESSION DE USER (TutoProgess si user.is_auth, TutoSession si user.is_anonym)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
     if request.user.is_authenticated:
@@ -316,9 +319,6 @@ def read_tuto(request, tuto_slug, page):
             request.session["progress"] = tutoprogress.save(request.session["progress"])
 
         # enregistrer ICI pageprogress dans request.session
-
-    # MISE A JOUR DU CONTEXT
-    context = tutocontext(request)
 
     if request.user.is_authenticated:
         PageProgress.set_all_propositionprogress(
