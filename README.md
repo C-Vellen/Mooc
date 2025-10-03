@@ -54,7 +54,7 @@
     La session est temporaire. Le suivi de l'avancement est sauvegardé temporairement en session. Après une heure, ou à la déconnexion, la session expire et le suivi d'avancement est perdu.
    
 - #### cas 2 : user authentifié :
-    Le suivi de l'avancement est sauvegardé en base de données et  en session.
+    Le suivi de l'avancement est sauvegardé en base de données.
         
 ## &#129489;&#8205;&#129309;&#8205;&#129489;  Les groupes utilisateurs :
 
@@ -164,15 +164,10 @@ Group comprend "utilisateur", "auteur", gestionnaire", "admin".
         - compléter les champs image et fichier des tables home/libelles et home/defaultcontent
 
 ## &#128640; Lancement du serveur de développement :
-- option 1 : en ligne de commande
     ```bash
         ./mooc/manage.py runserver
         ./mooc/manage.py tailwind start
         npx mix watch
-    ```
-- option 2 : utiliser le raccourci défini dans .bashrc_Mooc
-    ```bash
-        startmooc
     ```
 
 
