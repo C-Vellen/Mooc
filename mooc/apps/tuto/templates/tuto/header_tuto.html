@@ -9,33 +9,41 @@
 
         <div id="sommaire_menu_deroulant" class="hidden overflow-y-hidden w-full z-10 flex flex-col bg-slate-100 transition-all duration-500">
             <ul class="px-4 py-2 text-xs sm:text-sm ">
-                {% for page in tuto.get_all_pages %}
-                    {% if page.page_number <= tp.next_page or tp.is_finished %}
-                        {% if page == current_page %}
-                            <li class="font-bold text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#tete_de_page">{{page.page_number}}- {{page.page_title}}</a></li>
+
+            {% for pageprogress in tp.get_all_pageprogress %}
+                {% if pageprogress.page.page_number <= tp.next_page or tp.is_finished %}
+                    <li class="text-slate-800 hover:underline">
+                        {% if pageprogress.finished %}
+                        <img class="w-4 inline" src={% static 'tuto/img/check_round_green.svg'%}>
                         {% else %}
-                        <li class="text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#tete_de_page">{{page.page_number}}- {{page.page_title}}</a></li>
+                        <img class="w-4 inline" src={% static 'tuto/img/blank.svg'%}>
                         {% endif %}
-                        {% for content in page.get_all_contents %}
-                            {%  if content.contenttype == 'TI' %}
-                            <li class="ml-6 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}{{ content.ancre }}" >{{content.texte}}</a></li>
-                            {% endif %}
-                        {% endfor %}
-                        {% if page.get_all_questions %}
-                            <li class="ml-6 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#quiz" >QUIZ</a></li>
+                        {% if pageprogress.page == current_page %}
+                        <a class="font-bold" href="{% url 'tuto:read_tuto' tuto.slug pageprogress.page.page_number %}#tete_de_page">{{pageprogress.page.page_number}}- {{pageprogress.page.page_title}}</a>
+                        {% else %}
+                        <a href="{% url 'tuto:read_tuto' tuto.slug pageprogress.page.page_number %}#tete_de_page">{{pageprogress.page.page_number}}- {{pageprogress.page.page_title}}</a>
                         {% endif %}
-                    {% else %}
-                        <li class="text-slate-500"><span>{{page.page_number}}- {{page.page_title}}</san></li>
-                        {% for content in page.get_all_contents %}
-                            {%  if content.contenttype == 'TI' %}
-                            <li class="ml-6 text-slate-500"><span href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}{{ content.ancre }}" >{{content.texte}}</span></li>
-                            {% endif %}
-                        {% endfor %}
-                        {% if page.get_all_questions %}
-                            <li class="ml-6 text-slate-500"><span href="{% url 'tuto:read_tuto' tuto.slug page.page_number %}#quiz" >QUIZ</span></li>
+                    </li>
+                    {% for content in pageprogress.page.get_all_contents %}
+                        {%  if content.contenttype == 'TI' %}
+                        <li class="ml-12 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug pageprogress.page.page_number %}{{ content.ancre }}" >{{content.texte}}</a></li>
                         {% endif %}
+                    {% endfor %}
+                    {% if pageprogress.page.get_all_questions %}
+                        <li class="ml-12 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug pageprogress.page.page_number %}#quiz" >QUIZ</a></li>
                     {% endif %}
-                {% endfor %}
+                {% else %}
+                    <li class="text-slate-500"><img class="w-4 inline" src={% static 'tuto/img/blank.svg'%}><span>{{pageprogress.page.page_number}}- {{pageprogress.page.page_title}}</san></li>
+                    {% for content in pageprogress.page.get_all_contents %}
+                        {%  if content.contenttype == 'TI' %}
+                        <li class="ml-12 text-slate-500"><span>{{content.texte}}</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page.get_all_questions %}
+                        <li class="ml-12 text-slate-500"><span>QUIZ</span></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
 
             </ul>
         </div>
