@@ -50,53 +50,35 @@
         
     </div>
 
-    <div id="tete_de_page" class="reachable w-full mt-4 px-6 py-0 gap-1 flex justify-start items-start flex-col border-b-2 text-slate-700">
-            <p id="nav_tuto" class="text-xs sm:text-sm">
-                <a class="font-bold hover:underline" href="{% url 'home:index' %}">Accueil</a>
-                <span>></span>
-                <a class="hover:underline" href="{% url 'tuto:listing' %}">Tutoriels</a>
-                <span>></span>
-                <a class="action-button" href="{% url 'tuto:listing_cat' tuto.category.slug %}">{{ tuto.category.name }}</a>
-            </p>    
-            <p class="text-xs sm:text-sm">
-                <em>{{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
-                {% if utilisateur == "auteur" %}
-                    {% if tuto.in_progress or tuto.rejected %}
-                    <a class="ms-4 bg-orange-400 rounded px-1 py-0" href="{% url 'tuto:update_tuto' tuto.slug %}">Modifier</a>
-                    {% endif %}
-                    <a class="ms-4 bg-slate-400 rounded px-1 py-0" href="{% url 'progress:auteur' %}">Retour</a>
-                {% elif utilisateur == "gestionnaire" %}
-                    <em> - {{ tuto.get_author_names }} - {{tuto.get_tuto_status}}</em>
-                    <a class="ms-4 bg-slate-400 rounded px-1 py-0" href="{% url 'progress:gestionnaire' %}">Retour</a>
-                {% endif %}
-            </p>
-
-            <p class="min-w-40 leading-8 mt-1 mb-2 text-xs sm:text-sm"> 
-                <span class="mr-2 italic text-sm">Accès : </span>
-                {% if tuto.get_restrictions %}
-                    {% for res in tuto.get_restrictions %}
-                    <span class="restriction-choice access-button">{{res.name}}</span> 
-                    {% endfor %}
-                {% else %}
-                    <span class="access-button">Tout public</span> 
-                {% endif %}
-            </p>
-    
-            <h1 class="text-lg sm:text-2xl font-bold ">
-                <span>{{tuto.title}}</span>
+    <div id="tete_de_page" class="reachable w-full mt-4 px-6 py-0 gap-1 flex flex-col justify-start items-start border-b-2 text-slate-700">
+           
+            <h1 class="flex flex-row justify-start items-center gap-2">
+                <a class="-p-2 text-2xl sm:text-3xl font-bold " href="{% url 'tuto:listing_one' tp.tuto.slug %}">{{tuto.title}}</a>
                 {% if tuto.archived %}
-                <span class= "mx-2 px-2 bg-slate-800 text-slate-200" >ARCHIV&#201;</span>
+                <span class= "px-2 py-1 bg-slate-800 rounded text-slate-200" >ARCHIV&#201;</span>
                 {% endif %}
                 {% if not tuto.published %}
-                <span class= "mx-2 px-2 bg-slate-800 text-slate-200" >NON PUBLI&#201;</span>
+                <span class= "px-2 bg-slate-800 rounded text-slate-200" >NON PUBLI&#201;</span>
+                {% endif %}
+                {% if utilisateur == "auteur" %}
+                    {% if tuto.in_progress or tuto.rejected %}
+                    <a class="bg-orange-400 rounded px-2" href="{% url 'tuto:update_tuto' tuto.slug %}">Modifier</a>
+                    {% endif %}
+                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:auteur' %}">Retour</a>
+                {% elif utilisateur == "gestionnaire" %}
+                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:gestionnaire' %}">Retour</a>
                 {% endif %}
             </h1>
 
-            <div class= "flex justify-start items-center flex-row gap-4 text-sm sm:text-base ">
+            <div class="inline w-full">
+                <span>Progression : {{ tp|tuto_progression }}</span>
+            </div>
+
+            <div class="flex justify-start items-center flex-row gap-4 text-sm sm:text-base ">
                 {% if current_page.page_number > 1 %}
                     <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:-1 %}" class="left-arrow"></a>
                 {% endif %}
-                <p class="">Page: {{current_page.page_number}}</p>
+                <span class="">Page: {{current_page.page_number}}</span>
                 {% if current_page.page_number < tuto.get_pages_total_number  %}
                     {% if  current_pageprogress.finished %}
                         <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:1 %}" class="right-arrow"></a>
@@ -105,6 +87,7 @@
                     {% endif %}
                 {% endif %}
             </div>
+                
     </div>
 
 
