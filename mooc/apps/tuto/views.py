@@ -43,13 +43,24 @@ statut = {
 }
 
 
-def tutocontext(request):
+def tuto_authorized_list(request, display_tuto=False) -> list:
+    """LISTE DES TUTOS AUTORISES :
+        - dans les listes de tutos (si display_tuto=False)
+        - à l'affichage (si display_tuto=True)
+    le tuto ne peut être affiché que si :
+          1- il est publie et (l'user fait partie de la liste de restriction d'accès, ou le tuto n'a aucune restriction)
+    ou :  2- son auteur fait la requête
+    ou :  3- un gestionnaire fait la requête
+    """
+    if request.user.is_anonymous:
+        tuto_authorized_list = (
+            Tutorial.objects.filter(Q(published=True) & Q(restriction=None))
+            .order_by("-updated_at")
+            .distinct()
+        )
 
-    context = usercontext(request)
-    # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
-
-    if request.user.is_authenticated:
-        tuto_list = (
+    elif request.user.is_authenticated:
+        tuto_authorized_list = (
             Tutorial.objects.filter(
                 Q(published=True)
                 & (
@@ -60,6 +71,23 @@ def tutocontext(request):
             .order_by("-updated_at")
             .distinct()
         )
+        if display_tuto and request.user.is_gestionnaire:
+            tuto_authorized_list = Tutorial.objects.all()
+        elif display_tuto and request.user.is_author:
+            tuto_authorized_list = tuto_authorized_list.union(
+                Tutorial.objects.filter(author=request.user)
+            )
+    return tuto_authorized_list
+
+
+def tutocontext(request):
+
+    context = usercontext(request)
+    # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
+
+    tuto_list = tuto_authorized_list(request, display_tuto=False)
+
+    if request.user.is_authenticated:
         for tuto in tuto_list:
             tp, created = TutoProgress.objects.get_or_create(
                 user=request.user, tuto=tuto
@@ -76,11 +104,6 @@ def tutocontext(request):
         )
 
     elif request.user.is_anonymous:
-        tuto_list = (
-            Tutorial.objects.filter(Q(published=True) & Q(restriction=None))
-            .order_by("-updated_at")
-            .distinct()
-        )
         try:
             progress = request.session["progress"]
         except KeyError:
@@ -147,6 +170,9 @@ def listing_one(request, tuto_slug):
     """visualisation par l'auteur de la vignette d'un tuto en cours de création"""
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
     context = tutocontext(request)
+
+    if tuto not in tuto_authorized_list(request, display_tuto=True):
+        raise Http404
 
     tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
     if created:
@@ -235,33 +261,8 @@ def read_tuto(request, tuto_slug, page):
     page_number = int(page)
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
 
-    # VERIFICATION DE LA LISTE DES TUTOS AUTORISES :
-    # le tuto ne peut être affiché que si :
-    #       1- il est publie et (l'user fait partie de la liste de restriction d'accès, ou le tuto n'a aucune restriction)
-    # ou :  2- son auteur fait la requête
-    # ou :  3- un gestionnaire fait la requête
-
-    if request.user.is_anonymous:
-        tuto_authorized_list = Tutorial.objects.filter(
-            Q(published=True) & Q(restriction=None)
-        )
-    elif request.user.is_gestionnaire:
-        tuto_authorized_list = Tutorial.objects.all()
-
-    elif request.user.is_authenticated:
-        tuto_authorized_list = Tutorial.objects.filter(
-            (
-                Q(published=True)
-                & (
-                    Q(restriction__in=request.user.restriction.all())
-                    | Q(restriction=None)
-                )
-            )
-            | (Q(author=request.user))
-        )
-
     # CHARGEMENT DE LA PAGE A AFFICHER
-    if tuto in tuto_authorized_list:
+    if tuto in tuto_authorized_list(request, display_tuto=True):
         current_page = get_object_or_404(Page, tuto=tuto, page_number=page_number)
     else:
         raise Http404
@@ -277,7 +278,7 @@ def read_tuto(request, tuto_slug, page):
         )
         if created:
             tutoprogress.set_all_pageprogress()
-        current_pageprogress = PageProgress.objects.get(
+        current_pageprogress, created = PageProgress.objects.get_or_create(
             user=request.user, page=current_page
         )
     elif request.user.is_anonymous:
