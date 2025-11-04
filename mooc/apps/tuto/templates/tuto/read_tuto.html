@@ -6,8 +6,10 @@
 
 
     {% include 'tuto/header_tuto.html' %}
-    <div class="w-full my-10">
+    <div class="w-full mb-10">
         <div class=" mx-8 flex justify-start items-start flex-col gap-4 md:max-w-2xl md:mx-auto">
+
+            <h2 class="w-full text-center font-bold py-2 border-b-2 text-2xl sm:text-3xl">{{ current_page.page_title }}</h2>
  
         {# Affichage du contenu de la page #}
             {% for content in current_page.get_all_contents %}
@@ -121,11 +123,6 @@
 
                         {# Correction (n'apparait que si demandé) #}
                         {% if current_pageprogress.deactivated %} 
-                            {# {% if pp.proposition.good_answer %} #}
-                            {# <input class="correction hidden appearance-none accent-slate-500" type="checkbox" name="" checked disabled/> #}
-                            {# {% else %} #}
-                            {# <input class="correction hidden valid appearance-none accent-slate-500" type="checkbox" name="" disabled /> #}
-                            {# {% endif %} #}
                             {% if pp.result %}
                             <img class="correction hidden mr-0 h-4 text-xs text-right" src="{% static 'tuto/img/mark_green_check.svg' %}"/>
                             {% else %}

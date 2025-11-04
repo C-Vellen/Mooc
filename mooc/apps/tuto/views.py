@@ -165,7 +165,7 @@ def listing_cat(request, cat_slug):
 
 
 @login_required
-@user_passes_test(lambda u: is_author or is_gestionnaire)
+# @user_passes_test(lambda u: is_author or is_gestionnaire)
 def listing_one(request, tuto_slug):
     """visualisation par l'auteur de la vignette d'un tuto en cours de création"""
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
@@ -198,6 +198,7 @@ def listing_one(request, tuto_slug):
             "titre_vide": "Aucun tutoriel",
             "tp_list": [tp],
             "tuto": tuto,
+            "tuto_header": "progress",
         }
     )
 
