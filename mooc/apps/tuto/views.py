@@ -81,9 +81,9 @@ def listing_cat(request, cat_slug):
 def listing_one(request, tuto_slug):
     """visualisation par l'auteur de la vignette d'un tuto en cours de création"""
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    context = progresscontext(request)
+    context = progresscontext(request, display_tuto=True)
 
-    if tuto not in tuto_authorized_list(request, display_tuto=True):
+    if tuto not in context["tutos"]:
         raise Http404
 
     tp, created = TutoProgress.objects.get_or_create(user=request.user, tuto=tuto)
