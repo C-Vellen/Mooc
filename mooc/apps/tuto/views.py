@@ -11,11 +11,11 @@ from django.core.files import File
 
 from itertools import chain
 from operator import attrgetter
-from home.context import usercontext
 from user.views import is_author, is_gestionnaire
 from user.models import Restriction
 from progress.models import TutoProgress, PageProgress
 from progress.session import progress_init, TutoSession
+from progress.context import progresscontext
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
 from .update_data import foreignKeyFields, create_data, update_data, uniqueSlug
@@ -43,94 +43,9 @@ statut = {
 }
 
 
-def tuto_authorized_list(request, display_tuto=False) -> list:
-    """LISTE DES TUTOS AUTORISES :
-        - dans les listes de tutos (si display_tuto=False)
-        - à l'affichage (si display_tuto=True)
-    le tuto ne peut être affiché que si :
-          1- il est publie et (l'user fait partie de la liste de restriction d'accès, ou le tuto n'a aucune restriction)
-    ou :  2- son auteur fait la requête
-    ou :  3- un gestionnaire fait la requête
-    """
-    if request.user.is_anonymous:
-        tuto_authorized_list = (
-            Tutorial.objects.filter(Q(published=True) & Q(restriction=None))
-            .order_by("-updated_at")
-            .distinct()
-        )
-
-    elif request.user.is_authenticated:
-        tuto_authorized_list = (
-            Tutorial.objects.filter(
-                Q(published=True)
-                & (
-                    Q(restriction__in=request.user.restriction.all())
-                    | Q(restriction=None)
-                )
-            )
-            .order_by("-updated_at")
-            .distinct()
-        )
-        if display_tuto and request.user.is_gestionnaire:
-            tuto_authorized_list = Tutorial.objects.all()
-        elif display_tuto and request.user.is_author:
-            tuto_authorized_list = tuto_authorized_list.union(
-                Tutorial.objects.filter(author=request.user)
-            )
-    return tuto_authorized_list
-
-
-def tutocontext(request):
-
-    context = usercontext(request)
-    # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
-
-    tuto_list = tuto_authorized_list(request, display_tuto=False)
-
-    if request.user.is_authenticated:
-        for tuto in tuto_list:
-            tp, created = TutoProgress.objects.get_or_create(
-                user=request.user, tuto=tuto
-            )
-            if created:
-                tp.set_all_pageprogress()
-
-        context.update(
-            {
-                "tp_list": request.user.tutoprogress.filter(
-                    tuto__in=tuto_list
-                ).order_by("-tuto__updated_at")
-            }
-        )
-
-    elif request.user.is_anonymous:
-        try:
-            progress = request.session["progress"]
-        except KeyError:
-            request.session["progress"] = progress_init(tuto_list)
-            progress = request.session["progress"]
-
-        context.update({"tp_list": [TutoSession(tp) for tp in progress]})
-
-    context.update(
-        {
-            "titre_tous": "Tous les tutoriels",
-            "tutos": tuto_list,
-            "categories": Category.objects.all().order_by("position"),
-            "restrictions": Restriction.objects.all().order_by("name"),
-            "tuto_form": False,
-            "tuto_header": "read",
-            "read": True,
-        }
-    )
-
-    return context
-
-
-# @login_required
 def listing(request):
     """liste des vignettes des tutos publies"""
-    context = tutocontext(request)
+    context = progresscontext(request)
     context.update(
         {
             "titre_onglet": "Les tutoriels",
@@ -141,10 +56,9 @@ def listing(request):
     return render(request, "tuto/listing.html", context)
 
 
-# @login_required
 def listing_cat(request, cat_slug):
     """liste des vignettes des tutos publies d'une même catégorie"""
-    context = tutocontext(request)
+    context = progresscontext(request)
     category_select = get_object_or_404(Category, slug=cat_slug)
     if request.user.is_authenticated:
         tp_list_select = context["tp_list"].filter(Q(tuto__category=category_select))
@@ -164,12 +78,10 @@ def listing_cat(request, cat_slug):
     return render(request, "tuto/listing.html", context)
 
 
-@login_required
-# @user_passes_test(lambda u: is_author or is_gestionnaire)
 def listing_one(request, tuto_slug):
     """visualisation par l'auteur de la vignette d'un tuto en cours de création"""
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    context = tutocontext(request)
+    context = progresscontext(request)
 
     if tuto not in tuto_authorized_list(request, display_tuto=True):
         raise Http404
@@ -205,11 +117,10 @@ def listing_one(request, tuto_slug):
     return render(request, "tuto/listing.html", context)
 
 
-# @login_required
 def listing_search(request):
     """liste des vignettes des tutos publies suite à recherche"""
     query = request.GET.get("query")
-    context = tutocontext(request)
+    context = progresscontext(request)
     context.update(
         {
             "titre_onglet": "Le Mooc, recherche dans les tutoriels",
@@ -253,7 +164,6 @@ def listing_search(request):
     return render(request, "tuto/listing.html", context)
 
 
-# @login_required
 def read_tuto(request, tuto_slug, page):
     """
     affichage de la page d'un tutoriel
@@ -262,14 +172,14 @@ def read_tuto(request, tuto_slug, page):
     page_number = int(page)
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
 
+    # MISE A JOUR DU CONTEXT
+    context = progresscontext(request, display_tuto=True)
+
     # CHARGEMENT DE LA PAGE A AFFICHER
-    if tuto in tuto_authorized_list(request, display_tuto=True):
+    if tuto in context["tutos"]:
         current_page = get_object_or_404(Page, tuto=tuto, page_number=page_number)
     else:
         raise Http404
-
-    # MISE A JOUR DU CONTEXT
-    context = tutocontext(request)
 
     # CHARGEMENT DE LA PROGRESSION DE USER (TutoProgess si user.is_auth, TutoSession si user.is_anonym)
     # état de la progression du tuto pour user (ou création de tutoprogress s'il n'existe pas encore)
@@ -363,7 +273,7 @@ def read_tuto(request, tuto_slug, page):
 @user_passes_test(is_author)
 def create_tuto(request):
 
-    context = tutocontext(request)
+    context = progresscontext(request)
     context.update(
         {
             "titre_onglet": "Nouveau tutoriel",
@@ -401,7 +311,7 @@ def update_tuto(request, tuto_slug):
     if request.user not in tuto.author.all():
         return redirect("user:nonautorise")
 
-    context = tutocontext(request)
+    context = progresscontext(request)
     context.update(
         {
             "titre_onglet": tuto.thumbnail,
@@ -442,9 +352,7 @@ def update_tuto(request, tuto_slug):
     return render(request, "tuto/update_tuto.html", context)
 
 
-login_required
-
-
+@login_required
 @user_passes_test(lambda u: is_author or is_gestionnaire)
 def delete_tuto(request, tuto_slug):
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
@@ -458,9 +366,7 @@ def delete_tuto(request, tuto_slug):
         return redirect("user:nonautorise")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_author)
 def submit_tuto(request, tuto_slug):
     """soumission d'un tuto au gestionnaire pour
@@ -475,9 +381,7 @@ def submit_tuto(request, tuto_slug):
         return redirect("progress:auteur")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_gestionnaire)
 def reject_tuto(request, tuto_slug):
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
@@ -489,9 +393,7 @@ def reject_tuto(request, tuto_slug):
     return redirect("progress:gestionnaire")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_gestionnaire)
 def publish_tuto(request, tuto_slug):
     """première publication d'un nouveau tuto
@@ -509,9 +411,7 @@ def publish_tuto(request, tuto_slug):
     return redirect("progress:gestionnaire")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_gestionnaire)
 def archive_tuto(request, tuto_slug):
     """archivage d'un tuto publié"""
@@ -521,9 +421,7 @@ def archive_tuto(request, tuto_slug):
     return redirect("progress:gestionnaire")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_gestionnaire)
 def dearchive_tuto(request, tuto_slug):
     """déarchivage d'un tuto publié : possible uniquement s'il n'y a
@@ -537,9 +435,7 @@ def dearchive_tuto(request, tuto_slug):
     return redirect("progress:gestionnaire")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_gestionnaire)
 def depublish_tuto(request, tuto_slug):
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
@@ -549,9 +445,7 @@ def depublish_tuto(request, tuto_slug):
     return redirect("progress:gestionnaire")
 
 
-login_required
-
-
+@login_required
 @user_passes_test(is_author)
 def duplicate_tuto(request, tuto_slug):
     """duplication d'un tuto, ainsi que toute l'arborescence des related objects,

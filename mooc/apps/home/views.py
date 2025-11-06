@@ -1,12 +1,11 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from tuto.views import tutocontext
-from .context import usercontext
+from progress.context import progresscontext
 
 
 # @login_required
 def index(request):
-    context = tutocontext(request)
+    context = progresscontext(request)
     context.update(
         {
             "titre_onglet": "Le Mooc",

@@ -11,7 +11,7 @@
         <form class="flex flex-col items-center" method="post" action=".">
             {% csrf_token %}
             
-            {% if user.is_authenticated %}
+            {% if user_is_authenticated %}
                 <p>Vous êtes connecté, {{ user.first_name }} {{ user.last_name }} !</p>
                 <p><a class="action-button" href="{% url 'user:deconnexion' %}">Se déconnecter</a></p>
             {% else %}
