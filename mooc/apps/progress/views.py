@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 
-from home.context import usercontext
-from tuto.views import tutocontext
+from progress.context import progresscontext
+from home.context import homecontext
 from user.views import is_author, is_gestionnaire
 from tuto.models import TutoBase, Tutorial, Category
 from tuto.update_data import update_data
@@ -12,11 +12,10 @@ from .models import TutoProgress
 
 def compte(request):
     """page du compte"""
+    context = progresscontext(request)
     if request.user.is_authenticated:
-        context = usercontext(request)
         context.update(
             {
-                "tp_list": request.user.tutoprogress.filter(tuto__published=True),
                 "author_link": request.user.is_author,
                 "gestionnaire_link": request.user.is_gestionnaire,
                 "titre_compte": f"Compte personnel de {request.user.first_name} {request.user.last_name}",
@@ -24,15 +23,9 @@ def compte(request):
             }
         )
     elif request.user.is_anonymous:
-        context = tutocontext(request)
         tp_list = [TutoSession(tp) for tp in request.session["progress"]]
         context.update(
             {
-                "tp_list": [
-                    tutoprogress
-                    for tutoprogress in tp_list
-                    if tutoprogress.tuto.published
-                ],
                 "author_link": False,
                 "gestionnaire_link": False,
                 "titre_compte": "Compte invité",
@@ -54,7 +47,7 @@ def compte(request):
 @user_passes_test(is_author)
 def auteur(request):
     """page du compte 'auteur' permettant de voir/modifier/créer un tuto"""
-    context = usercontext(request)
+    context = homecontext(request)
     context.update(
         {
             "titre_onglet": "Mon compte Auteur",
@@ -78,7 +71,7 @@ def gestionnaire(request):
     - créer/modifier/supprimer une catégorie
     - voir/valider/publier/rejeter/archiver/supprimer un tuto
     """
-    context = usercontext(request)
+    context = homecontext(request)
     context.update(
         {
             "titre_onglet": "Mon compte Gestionnaire",

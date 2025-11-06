@@ -13,29 +13,33 @@ from django.db import IntegrityError
 
 from user.OpenID import OpenId
 from mooc.settings import DEBUG, GROUPNAMES
-from home.models import Libelles
+
+# from home.models import Libelles
+from home.context import homecontext
 from .forms import ConnexionForm
 from .models import User, Restriction
 
 
 def deconnexion(request):
-    print("============= LOGOUT ===============")
     logout(request)
     return redirect("home:index")
 
 
 def connexion(request):
     """
-    Vue permettant de se connecter
+    Vue permettant de se connecterS
     """
 
     # suppression des sessions expirées :
     management.call_command("clearsessions")
 
-    context = {lib.description: lib for lib in Libelles.objects.all()}
+    # context = {lib.description: lib for lib in Libelles.objects.all()}
+    context = homecontext(request)
+
     context.update(
         {
             "titre_onglet": "connexion",
+            "user_is_authenticated": False,
             "user_still_exists": False,
             "authentication_fail": False,
         }
@@ -87,34 +91,30 @@ def connexion(request):
                     user.groups.set([Group.objects.get(name="utilisateur")])
                     user.restriction.set([])
                     user.save()
-
-                    print("....................................")
-                    print(
-                        "new user is created:", user, "| auth?:", user.is_authenticated
+                    context.update(
+                        {"user_is_authenticated": user.is_authenticated, "user": user}
                     )
-                    print("....................................")
 
             # cas 2 : authentification d'un utilisateur existant :
             else:
                 try:
                     user = authenticate(username=username, password=password)
-                    print("....................................")
-                    print(
-                        "user is authenticated:",
-                        user,
-                    )
-                    print("....................................")
+                    if user:
+                        context.update(
+                            {
+                                "user_is_authenticated": user.is_authenticated,
+                                "user": user,
+                            }
+                        )
 
                 except PermissionDenied:
                     # context.update({"password_not_valid": True})
                     context.update({"authentication_fail": True})
 
             if user == None:
-                print("user: NONE")
                 context.update({"authentication_fail": True})
             else:
                 # Création / Mise à jour de la session :
-                print("LOGIN >>>>>>>>>>>")
                 login(request, user)
                 userinfo = {
                     "subid": user.subId,
