@@ -4,10 +4,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from progress.context import progresscontext
 from home.context import homecontext
 from user.views import is_author, is_gestionnaire
-from tuto.models import TutoBase, Tutorial, Category
+from tuto.models import TutoBase, Category
 from tuto.update_data import update_data
 from .session import TutoSession
-from .models import TutoProgress
 
 
 def compte(request):
@@ -86,7 +85,6 @@ def gestionnaire(request):
 
     # création, modif ou suppression d'une catégorie:
     if request.method == "POST":
-        res_post = request.POST
         update_data(request)
         return redirect("progress:gestionnaire")
 
