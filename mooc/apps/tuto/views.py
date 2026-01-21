@@ -1,20 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
 from django.http import Http404
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
-from django.utils.text import slugify
 
-from pathlib import Path
-from django.core.files import File
-
-from itertools import chain
-from operator import attrgetter
 from user.views import is_author, is_gestionnaire
 from user.models import Restriction
 from progress.models import TutoProgress, PageProgress
-from progress.session import progress_init, TutoSession
+from progress.session import TutoSession
 from progress.context import progresscontext
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
@@ -79,7 +72,7 @@ def listing_cat(request, cat_slug):
 
 
 def listing_one(request, tuto_slug):
-    """visualisation par l'auteur de la vignette d'un tuto en cours de création"""
+    """visualisation de la vignette d'un tuto"""
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
     context = progresscontext(request, display_tuto=True)
 
@@ -222,15 +215,12 @@ def read_tuto(request, tuto_slug, page):
         if request.user.is_authenticated:
             current_pageprogress.save()
         elif request.user.is_anonymous:
-            # à faire :
             current_pageprogress.update(request.POST, request.session["progress"])
             request.session["progress"] = current_pageprogress.save(
                 request.session["progress"]
             )
             tutoprogress.update(request.session["progress"])
             request.session["progress"] = tutoprogress.save(request.session["progress"])
-
-        # enregistrer ICI pageprogress dans request.session
 
     if request.user.is_authenticated:
         PageProgress.set_all_propositionprogress(

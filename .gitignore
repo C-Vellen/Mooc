@@ -1,5 +1,5 @@
 .venv
-.bashrc_Mooc
+.bashrc_Mooc*
 **/__pycache__/**
 **/media/**
 **/.coverage*
@@ -15,3 +15,5 @@ developpement.env
 /mooc/theme/static/css/dist/*
 /get_and_set_permissions
 /tmp
+/Notes
+/public
