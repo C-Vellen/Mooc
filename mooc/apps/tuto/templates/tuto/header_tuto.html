@@ -1,5 +1,12 @@
 {% load static tutos_extras %}
 
+    <div id="vignette-popup" class="hidden fixed z-50 mx-auto mt-4 max-w-6xl w-5/6 p-2 bg-slate-50 hover:cursor-pointer">
+
+
+        {% include 'tuto/vignette_tuto.html' with tuto_header="vignette-popup" %}
+
+    </div>
+
 
     <div class="fixed top-16 right-0  flex flex-col items-end bg-white sm:top-20">
         <div id="sommaire_box" class="w-40 mr-10 flex flex-row justify-end items-center text-header text-sm hover:font-bold hover:cursor-pointer">
@@ -7,10 +14,12 @@
             <div id="caret" class="unfold-caret"></div>
         </div>
 
+        {% comment %} Sommaire {% endcomment %}
         <div id="sommaire_menu_deroulant" class="hidden overflow-y-hidden w-full z-10 flex flex-col bg-slate-100 transition-all duration-500">
             <ul class="px-4 py-2 text-xs sm:text-sm ">
 
             {% for pageprogress in tp.get_all_pageprogress %}
+                {% comment %} Pages du sommaire lues ou accessibles en noir (lien actif) {% endcomment %}
                 {% if pageprogress.page.page_number <= tp.next_page or tp.is_finished %}
                     <li class="text-slate-800 hover:underline">
                         {% if pageprogress.finished %}
@@ -33,7 +42,8 @@
                         <li class="ml-12 text-slate-800 hover:underline"><a href="{% url 'tuto:read_tuto' tuto.slug pageprogress.page.page_number %}#quiz" >QUIZ</a></li>
                     {% endif %}
                 {% else %}
-                    <li class="text-slate-500"><img class="w-4 inline" src={% static 'tuto/img/blank.svg'%}><span>{{pageprogress.page.page_number}}- {{pageprogress.page.page_title}}</san></li>
+                {% comment %} Pages du sommaire non lues, en gris (lien inactif) {% endcomment %}
+                    <li class="text-slate-500"><img class="w-4 inline" src={% static 'tuto/img/blank.svg'%}><span>{{pageprogress.page.page_number}}- {{pageprogress.page.page_title}}</span></li>
                     {% for content in pageprogress.page.get_all_contents %}
                         {%  if content.contenttype == 'TI' %}
                         <li class="ml-12 text-slate-500"><span>{{content.texte}}</span></li>
@@ -53,9 +63,9 @@
     <div id="tete_de_page" class="reachable w-full mt-4 px-6 py-0 gap-1 flex flex-col justify-start items-start border-b-2 text-slate-700">
            
             <h1 class="flex flex-row justify-start items-center gap-2">
-                <a class="-p-2 text-2xl sm:text-3xl font-bold " href="{% url 'tuto:listing_one' tp.tuto.slug %}">{{tuto.title}}</a>
+                <span id="tutoTitre" class="-p-2 text-2xl sm:text-3xl font-bold hover:cursor-pointer">{{tuto.title}}</span>
                 {% if tuto.archived %}
-                <span class= "px-2 py-1 bg-slate-800 rounded text-slate-200" >ARCHIV&#201;</span>
+                <span id="tutoTitre" class= "px-2 py-1 bg-slate-800 rounded text-slate-200" >ARCHIV&#201;</span>
                 {% endif %}
                 {% if not tuto.published %}
                 <span class= "px-2 bg-slate-800 rounded text-slate-200" >NON PUBLI&#201;</span>
@@ -68,26 +78,38 @@
                 {% elif utilisateur == "gestionnaire" %}
                     <a class="bg-slate-400 rounded px-2" href="{% url 'progress:gestionnaire' %}">Retour</a>
                 {% endif %}
+
             </h1>
-
-            <div class="inline w-full">
-                <span>Progression : {{ tp|tuto_progression }}</span>
-            </div>
-
-            <div class="flex justify-start items-center flex-row gap-4 text-sm sm:text-base ">
-                {% if current_page.page_number > 1 %}
-                    <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:-1 %}" class="left-arrow"></a>
+            
+        <div class="w-full">
+            <span>Progression : </span>
+            {% for pageprogress in tp.get_all_pageprogress %}
+                {% if pageprogress.finished %}
+                    <img class="pb-1 w-4 inline" src={% static 'tuto/img/check_round_green.svg'%}>
+                {% else %}
+                    <img class="pb-1 w-4 inline" src={% static 'tuto/img/check_empty_round.svg'%}>
                 {% endif %}
-                <span class="">Page: {{current_page.page_number}}</span>
-                {% if current_page.page_number < tuto.get_pages_total_number  %}
-                    {% if  current_pageprogress.finished %}
-                        <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:1 %}" class="right-arrow"></a>
-                    {% elif current_page.page_number < tuto.get_pages_total_number%}
-                        <span class="right-arrow-inactive"></span>
-                    {% endif %}
+            {% endfor %}
+            <span class="pl-2">{{ tp|tuto_progression }}</span>
+        </div>
+
+        <div class="flex justify-start items-center flex-row gap-4 text-sm sm:text-base ">
+            {% if current_page.page_number > 1 %}
+                <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:-1 %}" class="left-arrow"></a>
+            {% endif %}
+            <span class="">Page: {{current_page.page_number}}</span>
+            {% if current_page.page_number < tuto.get_pages_total_number  %}
+                {% if  current_pageprogress.finished %}
+                    <a href="{% url 'tuto:read_tuto' tuto.slug current_page.page_number|add:1 %}" class="right-arrow"></a>
+                {% elif current_page.page_number < tuto.get_pages_total_number%}
+                    <span class="right-arrow-inactive"></span>
                 {% endif %}
-            </div>
+            {% endif %}
+        </div>
                 
     </div>
+
+    <script type="module" src="{% static 'tuto/js/vignettepopup.js' %}"></script>
+
 
 

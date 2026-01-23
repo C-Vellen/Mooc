@@ -82,7 +82,6 @@
                                 </select>
                         </div>                        
                     
-                    
                         {% else %}
                             <span class="cat-button">{{tuto.category.name}} </span>
                         {% endif %}
@@ -226,6 +225,8 @@
                 {% if tuto.get_all_pages and not tuto_form %}
                     {% if tuto_header == "admin" %}
                     <a href="{% url 'tuto:read_tuto' tuto.slug 1 %}" class="action-button">Visualiser</a> 
+                    {% elif tuto_header == "vignette-popup" %}
+                    <span></span> 
                     {% else %}
                     <a href="{% url 'tuto:read_tuto' tuto.slug tp.next_page %}" class="action-button">{{ tp|call_to_read:tuto_header }}</a> 
                     {% endif %}

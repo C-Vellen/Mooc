@@ -11,7 +11,7 @@ from progress.session import TutoSession
 from progress.context import progresscontext
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
-from .update_data import foreignKeyFields, create_data, update_data, uniqueSlug
+from .update_data import create_data, update_data, uniqueSlug
 
 
 # valeurs des boutons de redirection après création ou mise à jour tuto :
