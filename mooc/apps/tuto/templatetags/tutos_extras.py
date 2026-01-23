@@ -3,7 +3,6 @@ from django import template
 from django.http import Http404
 from mooc.settings import MEDIA_URL
 from home.models import default_image_url, default_video_url
-
 # from home.models import Libelles, DefaultContent
 # from user.models import Restriction
 # from tuto.models import Page, Content, Question, Proposition
@@ -100,7 +99,6 @@ def find_video(content):
 
 
 # définition des <input name=" ... "> pour les champs de l'objet tuto
-
 
 @register.filter
 def input_image(tuto, tuto_header):
