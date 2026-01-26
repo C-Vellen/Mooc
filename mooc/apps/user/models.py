@@ -27,7 +27,7 @@ class User(AbstractUser):
 
 class Restriction(models.Model):
     """ classe qui permet de définir des groupes de User et des groupes de tutoriels dont la lecture est retreinte à ces User """
-    name = models.CharField(max_length=20)
+    name = models.CharField(max_length=255)
 
     class Meta:
         verbose_name = "Restriction d'accè"

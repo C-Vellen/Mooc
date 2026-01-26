@@ -14,7 +14,7 @@
                 <span class="mr-2 italic text-sm">Accès : </span>
                 {% if user.get_restrictions %}
                     {% for res in user.get_restrictions %}
-                    <span class="restriction-choice access-button">{{res.name}}</span> 
+                    <span class="restriction-choice access-button">{{res.name|truncatechar}}</span> 
                     {% endfor %}
                 {% else %}
                     <span class="access-button">Tout public</span> 

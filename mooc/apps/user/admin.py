@@ -8,6 +8,7 @@ class RestrictionAdmin(admin.ModelAdmin):
     # ! N'APPARAIT DANS L'ADMIN QUE POUR LE STATUT SUPERUSER !
     # affichage des restrictions
     list_display = ['id', 'name', 'get_users', 'get_tutos']
+    # list_display = ['id', 'name']
     ordering = ('id',)
 
     

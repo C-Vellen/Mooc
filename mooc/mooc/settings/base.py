@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "debug_toolbar",
     "home",
     "user",
     "tuto",
@@ -50,7 +49,10 @@ INSTALLED_APPS = [
 ]
 
 if DEBUG:
-    INSTALLED_APPS += ["django_browser_reload"]
+    INSTALLED_APPS += [
+        "debug_toolbar",
+        "django_browser_reload",
+        ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -60,12 +62,18 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
-    "user.middleware.UserMiddleware",
 ]
 
 if DEBUG:
-    MIDDLEWARE += ["django_browser_reload.middleware.BrowserReloadMiddleware"]
+    MIDDLEWARE += [
+        "debug_toolbar.middleware.DebugToolbarMiddleware",
+        "django_browser_reload.middleware.BrowserReloadMiddleware",
+        ]
+
+# Middleware d'authentification utilisateur (toujours en dernier)
+MIDDLEWARE.append('user.middleware.UserMiddleware')
+
+
 
 ROOT_URLCONF = "mooc.urls"
 
