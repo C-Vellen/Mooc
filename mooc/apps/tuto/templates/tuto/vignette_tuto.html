@@ -119,9 +119,9 @@
                         {% endif %}
                         {% for res in restrictions %} 
                             {% if res in tuto_restrictions %}  
-                                <span id="list-p{{res.id}}" class="access-button">{{res.name}} </span>
+                                <span id="list-p{{res.id}}" class="access-button">{{res.name|truncatechar}} </span>
                             {% else %}
-                                <span id="list-p{{res.id}}" class="hidden access-button">{{res.name}} </span>
+                                <span id="list-p{{res.id}}" class="hidden access-button">{{res.name|truncatechar}} </span>
                             {% endif %} 
                         {% endfor %}
                         </p>
@@ -131,7 +131,7 @@
                     </div>
                     <div class="absolute">
                     
-                        <div class="access-choice hidden absolute top-0 left-0   w-40 overflow-auto h-48 z-10 flex flex-col text-slate-700 bg-white border-slate-500 border shadow-lg shadow-slate-500 rounded-sm   duration-100 ease-linear">
+                        <div class="access-choice hidden absolute top-0 left-0 w-52 overflow-auto h-48 z-10 flex flex-col text-slate-700 bg-white border-slate-500 border shadow-lg shadow-slate-500 rounded-sm   duration-100 ease-linear">
                             <ul>
                                 <li id="for-all" class="mx-1">
                                     {% if tuto_restrictions %}
@@ -143,9 +143,9 @@
                                 {% for res in restrictions %}
                                 <li id="p{{res.id}}" class="mx-1">
                                     {% if res in tuto_restrictions %} 
-                                        <p class="restriction-choice access-select">{{res.name}}</p> 
+                                        <p class="restriction-choice access-select">{{res.name|truncatechar}}</p> 
                                     {% else %}
-                                        <p class="restriction-choice access-noselect">{{res.name}}</p> 
+                                        <p class="restriction-choice access-noselect">{{res.name|truncatechar}}</p> 
                                     {% endif %}
                                 </li>
                             
@@ -155,9 +155,9 @@
                             <select class="access-option hidden" id="restriction" name="{{ tuto|input_restriction:tuto_header }}" multiple>
                                 {% for res in restrictions %}
                                         {% if res in tuto_restrictions %} 
-                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}" selected>{{res.name}}</option>
+                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}" selected>{{res.name|truncatechar}}</option>
                                         {% else %}
-                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}">{{res.name}}</option>
+                                            <option id="option-p{{res.id}}" class="" value="{{res.id}}">{{res.name|truncatechar}}</option>
                                         {% endif %}
                                 {% endfor %}
                             </select>
@@ -171,7 +171,7 @@
                     <p class="min-w-40 leading-8 -mt-1">
                         {% if tuto.get_restrictions %}
                             {% for res in tuto.get_restrictions %}
-                            <span class="restriction-choice access-button">{{res.name}}</span> 
+                            <span class="restriction-choice access-button">{{res.name|truncatechar}}</span> 
                             {% endfor %}
                         {% else %}
                             <span class="access-button">Tout public</span> 

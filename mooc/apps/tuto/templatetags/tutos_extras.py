@@ -187,3 +187,11 @@ def initiales(user):
         except IndexError:
             last = ""
         return first + last
+
+@register.filter
+def truncatechar(longstring, t=20):
+    """Tronque un nom à la t-ième lettre"""
+    if len(longstring) <= t:
+        return longstring
+    else:
+        return longstring[:t-3] + "..."
