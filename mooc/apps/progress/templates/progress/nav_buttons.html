@@ -7,11 +7,11 @@
     {% endif %}
     
     {% if author_link %}
-    <a class="action-button2 min-w-52" href="{% url 'progress:auteur' %}">Espace Auteur</a>
+    <a class="action-button2 min-w-52" href="{% url 'progress:admin' 'auteur' %}">Espace Auteur</a>
     {% endif %}
 
     {% if gestionnaire_link %}
-    <a class="action-button2 min-w-52" href="{% url 'progress:gestionnaire' %}">Espace Gestionnaire</a>
+    <a class="action-button2 min-w-52" href="{% url 'progress:admin' 'gestionnaire' %}">Espace Gestionnaire</a>
     {% endif %}
 
     {% if connexion_link %}

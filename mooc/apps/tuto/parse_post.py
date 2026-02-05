@@ -49,9 +49,9 @@ def parse_post(req_post, req_files):
     """
     actions = ["create", "update", "delete"]
     
-    print("#"*20)
-    print(req_post)
-    print("#"*20)
+    # print("#"*20)
+    # print(req_post)
+    # print("#"*20)
 
 
     # initialisation des dictionnaires :
@@ -61,7 +61,7 @@ def parse_post(req_post, req_files):
 
     # remlissage dictionnaires res_post à partir de request.POST
     for k, v in req_post.items():
-        print(".....", k, "   :   ", v)
+        # print(".....", k, "   :   ", v)
         try : 
             a, m, i, f = k.split('-')
             if f in booleanFields[m]:
@@ -70,7 +70,7 @@ def parse_post(req_post, req_files):
                 raise ValueError
             if f in manytomanyFields[m]:
                 v = req_post.getlist(k)
-                print("     > v= ", v)
+                # print("     > v= ", v)
             res_post[a][m][i].update({f:v})
         except KeyError:
             res_post[a][m].update({i:{f:v}})
