@@ -1,10 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.db.models import Q
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from user.views import is_author, is_gestionnaire
 from user.models import Restriction
 from progress.models import TutoProgress, PageProgress
 from progress.session import TutoSession
@@ -12,6 +11,7 @@ from progress.context import progresscontext
 from .models import CONTENTTYPE, Category, Tutorial, Page, clone
 
 from .update_data import create_data, update_data, uniqueSlug
+from .permission import permission_check
 
 
 # valeurs des boutons de redirection après création ou mise à jour tuto :
@@ -73,6 +73,7 @@ def listing_cat(request, cat_slug):
 
 def listing_one(request, tuto_slug):
     """visualisation de la vignette d'un tuto"""
+    
     tuto = get_object_or_404(Tutorial, slug=tuto_slug)
     context = progresscontext(request, display_tuto=True)
 
@@ -83,19 +84,6 @@ def listing_one(request, tuto_slug):
     if created:
         tp.set_all_pageprogress()
 
-    if tuto in request.user.tutorial.all():
-        context.update(
-            {
-                "utilisateur": "Auteur",
-            }
-        )
-    elif request.user.is_gestionnaire:
-        context.update(
-            {
-                "utilisateur": "Gestionnaire",
-            }
-        )
-
     context.update(
         {
             "titre_onglet": "Les tutoriels",
@@ -103,7 +91,8 @@ def listing_one(request, tuto_slug):
             "titre_vide": "Aucun tutoriel",
             "tp_list": [tp],
             "tuto": tuto,
-            "tuto_header": "progress",
+            "tuto_header": "read",
+            "role": request.session.get("role", "auteur"),
         }
     )
 
@@ -226,25 +215,7 @@ def read_tuto(request, tuto_slug, page):
         PageProgress.set_all_propositionprogress(
             current_pageprogress, clear="redo" in request.POST.keys()
         )
-        if tuto in request.user.tutorial.all():
-            context.update(
-                {
-                    "utilisateur": "auteur",
-                    "titre_page": "Vous êtes " + tuto.get_tuto_status,
-                }
-            )
-        elif is_gestionnaire(request.user):
-            context.update(
-                {
-                    "utilisateur": "gestionnaire",
-                    "titre_page": "<nom de l'auteur>" + " est " + tuto.get_tuto_status,
-                }
-            )
-        else:
-            context.update({"utilisateur": "adhérent"})
-
-    elif request.user.is_anonymous:
-        context.update({"utilisateur": "invité"})
+        
 
     context.update(
         {
@@ -253,6 +224,7 @@ def read_tuto(request, tuto_slug, page):
             "tuto": tuto,
             "current_page": current_page,
             "current_pageprogress": current_pageprogress,
+            "role": request.session.get("role"),
         }
     )
 
@@ -260,24 +232,12 @@ def read_tuto(request, tuto_slug, page):
 
 
 @login_required
-@user_passes_test(is_author)
-def create_tuto(request):
-
-    context = progresscontext(request)
-    context.update(
-        {
-            "titre_onglet": "Nouveau tutoriel",
-            "username": request.user.username,
-            "categories": Category.objects.all().order_by("position"),
-            "tuto_restrictions": Restriction.objects.none(),
-            "create": nextValue["create"],
-            "createback": nextValue["createback"],
-            "createcanc": nextValue["createcanc"],
-            "tuto_form": True,
-            "tuto_header": "create",
-        }
-    )
-
+# @user_passes_test(is_author)
+@permission_check
+def create_tuto(request, context):
+    """ création d'un tuto """
+    
+    role = request.session.get("role", "auteur")
     if request.method == "POST":
 
         if request.POST["next"] == "createcanc":
@@ -286,7 +246,7 @@ def create_tuto(request):
         newtuto = create_data(request)
 
         if request.POST["next"] == "createback":
-            return redirect("progress:auteur")
+            return redirect("progress:admin", role)
         elif request.POST["next"] == "create":
             return redirect("tuto:update_tuto", newtuto.slug)
 
@@ -294,48 +254,35 @@ def create_tuto(request):
 
 
 @login_required
-@user_passes_test(is_author)
-def update_tuto(request, tuto_slug):
+@permission_check
+def update_tuto(request, tuto_slug, context):
+    """ modification d'un tuto """
 
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    if request.user not in tuto.author.all():
-        return redirect("user:nonautorise")
-
-    context = progresscontext(request)
-    context.update(
-        {
-            "titre_onglet": tuto.thumbnail,
-            "tuto": tuto,
-            "categories": Category.objects.all(),
-            "tuto_restrictions": tuto.restriction.all(),
-            "CONTENTTYPES": CONTENTTYPE,
-            "cont": nextValue["cont"],
-            "visu": nextValue["visu"],
-            "back": nextValue["back"],
-            "canc": nextValue["canc"],
-            "tuto_form": True,
-            "tuto_header": "update",
-        }
-    )
-
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
+    
     if request.method == "POST":
 
         tuto.tutobase.updated_at = timezone.now()
         tuto.tutobase.save()
         tuto.updated_at = timezone.now()
-        tuto.in_progress = True
-        tuto.submitted = False
+        if role == "auteur":
+            tuto.in_progress = True
+            tuto.submitted = False
+        elif role == "gestionnaire":
+            tuto.in_progress = False
+            tuto.submitted = True
         tuto.rejected = False
         tuto.save()
 
         update_data(request)
-        tuto = get_object_or_404(Tutorial, id=tuto.id)
+        tuto = get_object_or_404(Tutorial, id=tuto.id) #????
 
         # redirections vers la page de visualisation ou retour au compte auteur ou continuation sur la page update
         if request.POST["next"] == "visu":
             return redirect("tuto:listing_one", tuto.slug)
         elif request.POST["next"] == "back":
-            return redirect("progress:auteur")
+            return redirect("progress:admin", role)
         elif request.POST["next"] == "cont":
             return redirect("tuto:update_tuto", tuto.slug)
 
@@ -343,52 +290,51 @@ def update_tuto(request, tuto_slug):
 
 
 @login_required
-@user_passes_test(lambda u: is_author or is_gestionnaire)
+@permission_check
 def delete_tuto(request, tuto_slug):
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    if request.user in tuto.author.all():
-        tuto.delete()
-        return redirect("progress:auteur")
-    elif request.user.is_gestionnaire:
-        tuto.delete()
-        return redirect("progress:gestionnaire")
-    else:
-        return redirect("user:nonautorise")
+    """ suppression d'un tuto """
+    
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)   
+    tuto.delete()
+    return redirect("progress:admin", role)
 
 
 @login_required
-@user_passes_test(is_author)
+@permission_check
 def submit_tuto(request, tuto_slug):
-    """soumission d'un tuto au gestionnaire pour
-    publication (ou rejet)"""
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    if request.user not in tuto.author.all():
-        return redirect("user:nonautorise")
-    else:
-        tuto.in_progress = False
-        tuto.submitted = True
-        tuto.save()
-        return redirect("progress:auteur")
+    """soumission d'un tuto au gestionnaire pour publication (ou rejet)"""
+
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
+    tuto.in_progress = False
+    tuto.submitted = True
+    tuto.save()
+    return redirect("progress:admin", role)
 
 
 @login_required
-@user_passes_test(is_gestionnaire)
+@permission_check
 def reject_tuto(request, tuto_slug):
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
+    """rejet du tuto par le gestionnaire après soumission"""
+
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
     tuto.in_progress = False
     tuto.submitted = False
     tuto.rejected = True
     tuto.published = False
     tuto.save()
-    return redirect("progress:gestionnaire")
+    return redirect("progress:admin", role)
 
 
 @login_required
-@user_passes_test(is_gestionnaire)
+@permission_check
 def publish_tuto(request, tuto_slug):
-    """première publication d'un nouveau tuto
-    ou republication d'un tuto archivé"""
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
+    """première publication d'un nouveau tuto ou republication d'un tuto archivé"""
+
+    role = request.session.get("role", "auteur")    
+    tuto = Tutorial.objects.get(slug=tuto_slug)
     tuto.in_progress = False
     tuto.submitted = False
     tuto.rejected = False
@@ -398,51 +344,56 @@ def publish_tuto(request, tuto_slug):
     for t in tuto.tutobase.tutorial.filter(version__lt=tuto.version):
         t.archived = True
         t.save()
-    return redirect("progress:gestionnaire")
+    return redirect("progress:admin", role)
 
 
 @login_required
-@user_passes_test(is_gestionnaire)
+@permission_check
 def archive_tuto(request, tuto_slug):
     """archivage d'un tuto publié"""
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
+
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
     tuto.archived = True
     tuto.save()
-    return redirect("progress:gestionnaire")
-
+    return redirect("progress:admin", role)
+    
 
 @login_required
-@user_passes_test(is_gestionnaire)
+@permission_check
 def dearchive_tuto(request, tuto_slug):
-    """déarchivage d'un tuto publié : possible uniquement s'il n'y a
-    pas de version plus récente publiée ou archivée"""
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
-    for t in tuto.tutobase.tutorial.filter(version__gt=tuto.version):
-        if t.published or t.archived:
-            return redirect("progress:gestionnaire")
+    """déarchivage d'un tuto publié """
+
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
     tuto.archived = False
     tuto.save()
-    return redirect("progress:gestionnaire")
+    return redirect("progress:admin", role)
+
 
 
 @login_required
-@user_passes_test(is_gestionnaire)
+@permission_check
 def depublish_tuto(request, tuto_slug):
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
+    """ retrait de la publication """
+
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
+
     if tuto.archived:
         tuto.published = False
         tuto.save()
-    return redirect("progress:gestionnaire")
+    return redirect("progress:admin", role)
 
 
 @login_required
-@user_passes_test(is_author)
+@permission_check
 def duplicate_tuto(request, tuto_slug):
-    """duplication d'un tuto, ainsi que toute l'arborescence des related objects,
-    conformément à ce qui est défini dans les class models avec les propriété
-    get_all_related_objects et méthode set_related_field"""
+    """duplication d'un tuto, ainsi que toute l'arborescence des related objects,conformément à ce qui est défini dans les class models avec les propriétés get_all_related_objects et méthode set_related_field"""
 
-    tuto = get_object_or_404(Tutorial, slug=tuto_slug)
+    role = request.session.get("role", "auteur")
+    tuto = Tutorial.objects.get(slug=tuto_slug)
+
     tuto = clone(tuto)  # fonction définie dans tuto.models.py
 
     # incrément de la version et modification du slug (qui doit rester unique)
@@ -464,5 +415,4 @@ def duplicate_tuto(request, tuto_slug):
             request.user,
         ]
     )
-
-    return redirect("progress:auteur")
+    return redirect("progress:admin", role)

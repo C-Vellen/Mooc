@@ -6,6 +6,5 @@ app_name = 'progress'
 
 urlpatterns = [
     re_path(r'^compte$', views.compte, name='compte'),
-    re_path(r'^auteur$', views.auteur, name='auteur'),
-    re_path(r'^gestionnaire$', views.gestionnaire, name='gestionnaire'),
+    re_path(r'^admin/(?P<role>[a-zA-Z0-9-_]+)$', views.admin, name='admin'),
     ]

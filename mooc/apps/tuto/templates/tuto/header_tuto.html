@@ -70,13 +70,19 @@
                 {% if not tuto.published %}
                 <span class= "px-2 bg-slate-800 rounded text-slate-200" >NON PUBLI&#201;</span>
                 {% endif %}
-                {% if utilisateur == "auteur" %}
+                
+                {% if role == "auteur" %}  
                     {% if tuto.in_progress or tuto.rejected %}
                     <a class="bg-orange-400 rounded px-2" href="{% url 'tuto:update_tuto' tuto.slug %}">Modifier</a>
                     {% endif %}
-                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:auteur' %}">Retour</a>
-                {% elif utilisateur == "gestionnaire" %}
-                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:gestionnaire' %}">Retour</a>
+                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:admin' role %}">Retour</a>
+                {% endif %}
+
+                {% if role == "gestionnaire" %}
+                    {% if tuto.submitted %}
+                    <a class="bg-orange-400 rounded px-2" href="{% url 'tuto:update_tuto' tuto.slug %}">Modifier</a>
+                    {% endif %}
+                    <a class="bg-slate-400 rounded px-2" href="{% url 'progress:admin' role %}">Retour</a>
                 {% endif %}
 
             </h1>

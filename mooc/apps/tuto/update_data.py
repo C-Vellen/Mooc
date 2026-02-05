@@ -31,7 +31,7 @@ def create_data(request):
     res_post, res_files = parse_post(request.POST, request.FILES)
 
     # ------ IMPRESSIONS POUR DEBUGGER : -------------------------------------
-    debugPrint(res_post, res_files)
+    # debugPrint(res_post, res_files)
     # ------------------------------------------------------------------------
 
     # dictionnaire de la nouvelle instance, exceptée les mantomanyfields qui doivent être traitée après initialisation de l'instance
@@ -93,7 +93,7 @@ def update_data(request):
     res_post, res_files = parse_post(request.POST, request.FILES)
 
     # impression des dictionnaire dans la console pour debugger
-    debugPrint(res_post, res_files)
+    # debugPrint(res_post, res_files)
 
     # UPDATE: sauvegarde des données modifiées :
 
