@@ -14,17 +14,6 @@ from .update_data import create_data, update_data, uniqueSlug
 from .permission import permission_check
 
 
-# valeurs des boutons de redirection après création ou mise à jour tuto :
-nextValue = {
-    "cont": "Enregistrer et continuer les modifications",
-    "visu": "Enregistrer et visualiser le tutoriel",
-    "back": "Enregistrer et retourner à mon compte",
-    "canc": "Annuler les modifications",
-    "create": "Créer et ajouter des pages",
-    "createback": "Créer et revenir au menu",
-    "createcanc": "Annuler et revenir au menu",
-}
-
 # identification et statuts possible d'un tutoriel :
 titre_auteur = "Vous êtes auteur de ce tutoriel (version V{}) "
 titre_gestionnaire = " est auteur de ce tutoriel (version V{}) "
@@ -232,16 +221,12 @@ def read_tuto(request, tuto_slug, page):
 
 
 @login_required
-# @user_passes_test(is_author)
 @permission_check
 def create_tuto(request, context):
     """ création d'un tuto """
     
     role = request.session.get("role", "auteur")
     if request.method == "POST":
-
-        if request.POST["next"] == "createcanc":
-            return redirect("progress:auteur")
 
         newtuto = create_data(request)
 
@@ -367,7 +352,6 @@ def dearchive_tuto(request, tuto_slug):
     return redirect("progress:admin", role)
 
 
-
 @login_required
 @permission_check
 def depublish_tuto(request, tuto_slug):
@@ -375,10 +359,8 @@ def depublish_tuto(request, tuto_slug):
 
     role = request.session.get("role", "auteur")
     tuto = Tutorial.objects.get(slug=tuto_slug)
-
-    if tuto.archived:
-        tuto.published = False
-        tuto.save()
+    tuto.published = False
+    tuto.save()
     return redirect("progress:admin", role)
 
 

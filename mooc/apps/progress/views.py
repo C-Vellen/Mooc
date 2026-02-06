@@ -1,11 +1,7 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 
 from progress.context import progresscontext
-from home.context import homecontext
-from user.views import is_author, is_gestionnaire
-from tuto.models import TutoBase, Category
-from tuto.update_data import update_data
 from tuto.permission import permission_check
 from .session import TutoSession
 

@@ -1,11 +1,9 @@
 
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404
 from user.models import Restriction
-from progress.models import TutoProgress, PageProgress
-from progress.session import TutoSession
 from progress.context import progresscontext
 
-from .models import CONTENTTYPE, Category, TutoBase, Tutorial, Page, clone
+from .models import CONTENTTYPE, Category, TutoBase, Tutorial
 
 
 
@@ -42,11 +40,9 @@ def permission_check(view):
         match view.__name__:
             case "admin":
                 
-                request.session['role'] = role
-                
                 if not((role == "auteur" and request.user.is_author) or (role == "gestionnaire" and request.user.is_gestionnaire)):
                     return redirect("user:nonautorise")
-                
+                request.session['role'] = role
                 context.update(
                     {
                         "titre_onglet": f"Mon compte {{role}}",
@@ -151,6 +147,10 @@ def permission_check(view):
                 
             case "depublish_tuto":
                 if not ((tuto.published and tuto.archived) and request.user.is_gestionnaire):
+                    return redirect("user:nonautorise")
+   
+            case "duplicate_tuto":
+                if not ((tuto.published or tuto.archived) and request.user in tuto.author.all()):
                     return redirect("user:nonautorise")
    
         
