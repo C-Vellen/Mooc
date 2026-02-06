@@ -12,11 +12,11 @@ from .parse_post import parse_post, debugPrint, foreignKeyFields, manytomanyFiel
 
 
 def uniqueSlug(newtuto):
-    """construit le slug d'un tuto en garantissant sont unicité : titre-xxxx-version"""
+    """construit le slug d'un tuto en garantissant son unicité : titre-xxxx-version"""
     rootSlug = slugify(newtuto.title)[:40]
     suffixSlug = f"-{newtuto.version}"
     slugList = [
-        re.sub(r"-\d+$", "", t.slug) for t in modelClass["tutorial"].objects.all()
+        t.slug for t in modelClass["tutorial"].objects.all()
     ]
     doublon = True
     while doublon:
