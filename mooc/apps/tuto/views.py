@@ -266,13 +266,9 @@ def update_tuto(request, tuto_slug, context):
         tuto.tutobase.updated_at = timezone.now()
         tuto.tutobase.save()
         tuto.updated_at = timezone.now()
-        if role == "auteur":
-            tuto.in_progress = True
-            tuto.submitted = False
-        elif role == "gestionnaire":
-            tuto.in_progress = False
-            tuto.submitted = True
-        tuto.rejected = False
+        if not tuto.submitted:
+            tuto.in_progress=True
+            tuto.rejected = False  
         tuto.save()
 
         update_data(request)
