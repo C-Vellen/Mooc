@@ -1,8 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
 from progress.context import progresscontext
 from tuto.permission import permission_check
+from tuto.update_data import update_data
 from .session import TutoSession
 
 
@@ -44,6 +45,12 @@ def compte(request):
 @permission_check
 def admin(request, role, context):
     """page du compte adlinistration des tutoriels permettant de les créer/modifier/publier/archiver/supprimer"""
+        
+    # création, modif ou suppression d'une catégorie:
+    if role == "gestionnaire" and request.method == "POST":
+        update_data(request)
+        return redirect("progress:admin", role)
+      
     return render(request, "progress/tuto_admin.html", context)
 
 
