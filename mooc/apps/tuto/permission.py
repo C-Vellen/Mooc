@@ -1,4 +1,3 @@
-
 from django.shortcuts import redirect, get_object_or_404
 from user.models import Restriction
 from progress.context import progresscontext
@@ -45,7 +44,7 @@ def permission_check(view):
                 request.session['role'] = role
                 context.update(
                     {
-                        "titre_onglet": f"Mon compte {{role}}",
+                        "titre_onglet": f"Mon compte {role}",
                         "tuto_form": False,
                         "tuto_header": "admin",
                         "role": role,
