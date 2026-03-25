@@ -2,16 +2,15 @@
 .bashrc_Mooc*
 **/__pycache__/**
 *.pyc
+**/staticfiles/**
 **/media/**
 **/.coverage*
 /mooc/mooc/settings/develop.py
 /mooc/mooc/settings/production.py
 /mooc/mooc/variables_environnement.py
-# /mooc/apps/user/display_session.py
 /mooc/htmlcov
 **/tests/tmp
 node_modules
-developpement.env
 .env
 /mooc/theme/static/css/dist/*
 /get_and_set_permissions
