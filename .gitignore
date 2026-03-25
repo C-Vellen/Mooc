@@ -1,6 +1,7 @@
 .venv
 .bashrc_Mooc*
 **/__pycache__/**
+*.pyc
 **/media/**
 **/.coverage*
 /mooc/mooc/settings/develop.py
