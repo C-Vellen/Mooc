@@ -17,16 +17,5 @@ MIDDLEWARE += [
     "django_browser_reload.middleware.BrowserReloadMiddleware",
     ] 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql / django.db.backends.mysql",
-        "NAME": "xxxxxx",
-        "USER": "xxxxxx",
-        "PASSWORD": "xxxxxx",
-        "HOST": "127.0.0.1",
-        "PORT": "xxxx",
-    }
-}
-
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
