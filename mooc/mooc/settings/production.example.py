@@ -7,6 +7,6 @@ DEBUG=False
 ALLOWED_HOSTS =  ['mondomaine.fr', 'www.mondomaine.fr']
 CSRF_TRUSTED_ORIGINS = ["https://mondomaine.fr", "https://www.mondomaine.fr"]
 
-STATIC_ROOT = "/app/staticfiles"
-MEDIA_ROOT = "/app/media"
+STATIC_ROOT = "/app/mooc/staticfiles"
+MEDIA_ROOT = "/app/mooc/media"
  
