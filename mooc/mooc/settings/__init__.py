@@ -1,10 +1,3 @@
-# package des settings :
-
-import pymysql
-
-pymysql.install_as_MySQLdb()
-
-
 from .base import *
 
 try:
@@ -17,5 +10,4 @@ try:
 except ModuleNotFoundError:
     pass
 
-print(">>>>>>>>>>>>>>>><", DEBUG)
 
