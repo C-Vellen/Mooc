@@ -12,7 +12,6 @@
 **/tests/tmp
 node_modules
 .env
-/mooc/theme/static/css/dist/*
 /get_and_set_permissions
 /tmp
 /Notes
